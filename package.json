@@ -2,6 +2,8 @@
   "name": "free-nextadmin-nextjs",
   "version": "1.2.2",
   "private": true,
+  "engines": { "node": "20.x" },
+  
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -38,3 +40,4 @@
     "typescript": "^5"
   }
 }
+
