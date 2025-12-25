@@ -1,8 +1,10 @@
 "use client";
 
 import { SearchIcon } from "@/assets/icons";
+import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useSidebarContext } from "../sidebar/sidebar-context";
 import { MenuIcon } from "./icons";
 import { Notification } from "./notification";
@@ -10,9 +12,28 @@ import { UserInfo } from "./user-info";
 
 export function Header() {
   const { toggleSidebar, isMobile } = useSidebarContext();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setIsScrolled(window.scrollY > 8);
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <header className="sticky top-4 z-30 mx-4 flex items-center justify-between rounded-2xl bg-[rgba(255,255,255,0.00)] backdrop-blur-xl border-b border-white/10 px-4 py-5 text-[var(--dash-text)] shadow-[0_12px_32px_rgba(0,0,0,0.35)] md:mx-5 md:px-5 2xl:mx-10 2xl:px-10">
+    <header
+      className={cn(
+        "sticky top-4 z-30 mx-4 flex items-center justify-between rounded-2xl border-b px-4 py-5 text-[var(--dash-text)] transition-[background-color,backdrop-filter,box-shadow,border-color] duration-300 md:mx-5 md:px-5 2xl:mx-10 2xl:px-10",
+        isScrolled
+          ? "bg-[rgba(255,255,255,0)] backdrop-blur-xl border-white/10 shadow-[0_0px_32px_rgba(0,0,0,0.35)]"
+          : "bg-transparent backdrop-blur-none border-transparent shadow-none",
+      )}
+    >
       <button
         onClick={toggleSidebar}
         className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-deep)] px-1.5 py-1 text-[var(--dash-text)] hover:bg-[var(--dash-active-bg)] lg:hidden"
