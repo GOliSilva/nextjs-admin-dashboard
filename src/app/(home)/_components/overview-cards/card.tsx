@@ -9,13 +9,21 @@ type PropsType = {
     growthRate: number;
   };
   Icon: (props: SVGProps<SVGSVGElement>) => JSX.Element;
+  className?: string;
+  showGrowth?: boolean;
 };
 
-export function OverviewCard({ label, data, Icon }: PropsType) {
+export function OverviewCard({
+  label,
+  data,
+  Icon,
+  className,
+  showGrowth = true,
+}: PropsType) {
   const isDecreasing = data.growthRate < 0;
 
   return (
-    <div className="dash-card rounded-[10px] p-6">
+    <div className={cn("dash-card rounded-[10px] p-6", className)}>
       <Icon />
 
       <div className="mt-6 flex items-end justify-between">
@@ -25,26 +33,28 @@ export function OverviewCard({ label, data, Icon }: PropsType) {
           <dd className="dash-muted text-sm font-medium">{label}</dd>
         </dl>
 
-        <dl
-          className={cn(
-            "text-sm font-medium",
-            isDecreasing ? "text-red" : "text-green",
-          )}
-        >
-          <dt className="flex items-center gap-1.5">
-            {data.growthRate}%
-            {isDecreasing ? (
-              <ArrowDownIcon aria-hidden />
-            ) : (
-              <ArrowUpIcon aria-hidden />
+        {showGrowth && (
+          <dl
+            className={cn(
+              "text-sm font-medium",
+              isDecreasing ? "text-red" : "text-green",
             )}
-          </dt>
+          >
+            <dt className="flex items-center gap-1.5">
+              {data.growthRate}%
+              {isDecreasing ? (
+                <ArrowDownIcon aria-hidden />
+              ) : (
+                <ArrowUpIcon aria-hidden />
+              )}
+            </dt>
 
-          <dd className="sr-only">
-            {label} {isDecreasing ? "Decreased" : "Increased"} by{" "}
-            {data.growthRate}%
-          </dd>
-        </dl>
+            <dd className="sr-only">
+              {label} {isDecreasing ? "Decreased" : "Increased"} by{" "}
+              {data.growthRate}%
+            </dd>
+          </dl>
+        )}
       </div>
     </div>
   );

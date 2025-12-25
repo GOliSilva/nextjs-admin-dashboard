@@ -55,7 +55,7 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "max-w-[290px] overflow-hidden bg-transparent transition-[width] duration-200 ease-linear dark:bg-transparent",
+          "max-w-[260px] overflow-hidden bg-transparent transition-[width] duration-200 ease-linear dark:bg-transparent",
           isMobile ? "fixed bottom-0 top-0 z-50" : "sticky top-0 h-screen",
           isOpen ? "w-full" : "w-0",
         )}

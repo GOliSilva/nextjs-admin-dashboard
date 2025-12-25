@@ -5,7 +5,7 @@ type SVGPropsType = SVGProps<SVGSVGElement>;
 export function Views(props: SVGPropsType) {
   return (
     <svg width={58} height={58} viewBox="0 0 58 58" fill="none" {...props}>
-      <circle cx={29} cy={29} r={29} fill="#3FD97F" />
+      <circle cx={29} cy={29} r={29} fill="#1232e2" />
       <path
         d="M26.562 29a2.437 2.437 0 114.875 0 2.437 2.437 0 01-4.875 0z"
         fill="#fff"

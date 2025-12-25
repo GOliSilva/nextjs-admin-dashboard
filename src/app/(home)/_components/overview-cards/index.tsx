@@ -10,6 +10,8 @@ export async function OverviewCardsGroup() {
     <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5">
       <OverviewCard
         label="Total Views"
+        className="bg-[url('/images/background/jelly.png')] bg-cover bg-center bg-no-repeat"
+        showGrowth={false}
         data={{
           ...views,
           value: compactFormat(views.value),
