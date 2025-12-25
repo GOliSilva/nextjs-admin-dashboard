@@ -75,7 +75,7 @@ export function Notification() {
 
       <DropdownContent
         align={isMobile ? "end" : "center"}
-        className="border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3.5 py-3 shadow-[var(--dash-shadow-elevated)] min-[350px]:min-w-[20rem]"
+        className="border border-white/10 bg-[rgba(14,14,48,0.8)] px-3.5 py-3 shadow-[0_0px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl min-[350px]:min-w-[20rem]"
       >
         <div className="mb-1 flex items-center justify-between px-2 py-1.5">
           <span className="text-lg font-medium text-[var(--dash-text)]">

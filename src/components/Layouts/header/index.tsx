@@ -28,54 +28,63 @@ export function Header() {
   return (
     <header
       className={cn(
-        "sticky top-4 z-30 mx-4 flex items-center justify-between rounded-2xl border-b px-4 py-5 text-[var(--dash-text)] transition-[background-color,backdrop-filter,box-shadow,border-color] duration-300 md:mx-5 md:px-5 2xl:mx-10 2xl:px-10",
-        isScrolled
-          ? "bg-[rgba(255,255,255,0)] backdrop-blur-xl border-white/10 shadow-[0_0px_32px_rgba(0,0,0,0.35)]"
-          : "bg-transparent backdrop-blur-none border-transparent shadow-none",
+        "sticky top-4 z-30 mx-4 rounded-2xl px-4 py-5 text-[var(--dash-text)] md:mx-5 md:px-5 2xl:mx-10 2xl:px-10",
       )}
     >
-      <button
-        onClick={toggleSidebar}
-        className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-deep)] px-1.5 py-1 text-[var(--dash-text)] hover:bg-[var(--dash-active-bg)] lg:hidden"
-      >
-        <MenuIcon />
-        <span className="sr-only">Toggle Sidebar</span>
-      </button>
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-0 z-0 rounded-2xl border-b transition-[background-color,backdrop-filter,box-shadow,border-color] duration-300",
+          isScrolled
+            ? "bg-[rgba(255,255,255,0.00)] backdrop-blur-xl border-white/10 shadow-[0_0px_32px_rgba(0,0,0,0.35)]"
+            : "bg-transparent backdrop-blur-none border-transparent shadow-none",
+        )}
+      />
 
-      {isMobile && (
-        <Link href={"/"} className="ml-2 max-[430px]:hidden min-[375px]:ml-4">
-          <Image
-            src={"/images/logo/logo-icon.svg"}
-            width={32}
-            height={32}
-            alt=""
-            role="presentation"
-          />
-        </Link>
-      )}
+      <div className="relative z-10 flex items-center justify-between">
+        <button
+          onClick={toggleSidebar}
+          className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-deep)] px-1.5 py-1 text-[var(--dash-text)] hover:bg-[var(--dash-active-bg)] lg:hidden"
+        >
+          <MenuIcon />
+          <span className="sr-only">Toggle Sidebar</span>
+        </button>
 
-      <div className="max-xl:hidden">
-        <h1 className="mb-0.5 text-heading-5 font-bold">Dashboard</h1>
-        <p className="dash-muted font-medium">
-          Next.js Admin Dashboard Solution
-        </p>
-      </div>
+        {isMobile && (
+          <Link href={"/"} className="ml-2 max-[430px]:hidden min-[375px]:ml-4">
+            <Image
+              src={"/images/logo/logo-icon.svg"}
+              width={32}
+              height={32}
+              alt=""
+              role="presentation"
+            />
+          </Link>
+        )}
 
-      <div className="flex flex-1 items-center justify-end gap-2 min-[375px]:gap-4">
-        <div className="relative w-full max-w-[300px]">
-          <input
-            type="search"
-            placeholder="Search"
-            className="flex w-full items-center gap-3.5 rounded-full border border-[var(--dash-border)] bg-[var(--dash-overlay)] py-3 pl-[53px] pr-5 text-[var(--dash-text)] outline-none transition-colors placeholder:text-[var(--dash-text-muted)] focus-visible:border-[var(--dash-ring)]"
-          />
-
-          <SearchIcon className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 max-[1015px]:size-5" />
+        <div className="max-xl:hidden">
+          <h1 className="mb-0.5 text-heading-5 font-bold">Dashboard</h1>
+          <p className="dash-muted font-medium">
+            Next.js Admin Dashboard Solution
+          </p>
         </div>
 
-        <Notification />
+        <div className="flex flex-1 items-center justify-end gap-2 min-[375px]:gap-4">
+          <div className="relative w-full max-w-[300px]">
+            <input
+              type="search"
+              placeholder="Search"
+              className="flex w-full items-center gap-3.5 rounded-full border border-[var(--dash-border)] bg-[var(--dash-overlay)] py-3 pl-[53px] pr-5 text-[var(--dash-text)] outline-none transition-colors placeholder:text-[var(--dash-text-muted)] focus-visible:border-[var(--dash-ring)]"
+            />
 
-        <div className="shrink-0">
-          <UserInfo />
+            <SearchIcon className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 max-[1015px]:size-5" />
+          </div>
+
+          <Notification />
+
+          <div className="shrink-0">
+            <UserInfo />
+          </div>
         </div>
       </div>
     </header>

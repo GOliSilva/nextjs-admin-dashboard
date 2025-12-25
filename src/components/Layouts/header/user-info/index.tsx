@@ -51,7 +51,7 @@ export function UserInfo() {
       </DropdownTrigger>
 
       <DropdownContent
-        className="border border-[var(--dash-border)] bg-[var(--dash-surface)] shadow-[var(--dash-shadow-elevated)] min-[230px]:min-w-[17.5rem]"
+        className="border border-white/10 bg-[rgba(14,14,48,0.8)] shadow-[0_0px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl min-[230px]:min-w-[17.5rem]"
         align="end"
       >
         <h2 className="sr-only">User information</h2>
