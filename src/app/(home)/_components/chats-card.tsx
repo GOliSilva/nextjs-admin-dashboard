@@ -9,17 +9,15 @@ export async function ChatsCard() {
   const data = await getChatsData();
 
   return (
-    <div className="col-span-12 rounded-[10px] bg-white py-6 shadow-1 dark:bg-gray-dark dark:shadow-card xl:col-span-4">
-      <h2 className="mb-5.5 px-7.5 text-body-2xlg font-bold text-dark dark:text-white">
-        Chats
-      </h2>
+    <div className="dash-panel col-span-12 rounded-[10px] py-6 xl:col-span-4">
+      <h2 className="mb-5.5 px-7.5 text-body-2xlg font-bold">Chats</h2>
 
       <ul>
         {data.map((chat, key) => (
           <li key={key}>
             <Link
               href="/"
-              className="flex items-center gap-4.5 px-7.5 py-3 outline-none hover:bg-gray-2 focus-visible:bg-gray-2 dark:hover:bg-dark-2 dark:focus-visible:bg-dark-2"
+              className="flex items-center gap-4.5 px-7.5 py-3 outline-none hover:bg-[var(--dash-active-bg)] focus-visible:bg-[var(--dash-active-bg)]"
             >
               <div className="relative shrink-0">
                 <Image
@@ -39,15 +37,13 @@ export async function ChatsCard() {
               </div>
 
               <div className="relative flex-grow">
-                <h3 className="font-medium text-dark dark:text-white">
-                  {chat.name}
-                </h3>
+                <h3 className="font-medium">{chat.name}</h3>
 
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={cn(
-                      "truncate text-sm font-medium dark:text-dark-5 xl:max-w-[8rem]",
-                      chat.unreadCount && "text-dark-4 dark:text-dark-6",
+                      "dash-muted truncate text-sm font-medium xl:max-w-[8rem]",
+                      chat.unreadCount && "dash-muted",
                     )}
                   >
                     {chat.lastMessage.content}
@@ -56,7 +52,7 @@ export async function ChatsCard() {
                   <DotIcon />
 
                   <time
-                    className="text-xs"
+                    className="dash-muted text-xs"
                     dateTime={chat.lastMessage.timestamp}
                   >
                     {formatMessageTime(chat.lastMessage.timestamp)}

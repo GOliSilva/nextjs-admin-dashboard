@@ -15,16 +15,14 @@ export function OverviewCard({ label, data, Icon }: PropsType) {
   const isDecreasing = data.growthRate < 0;
 
   return (
-    <div className="rounded-[10px] bg-white p-6 shadow-1 dark:bg-gray-dark">
+    <div className="dash-card rounded-[10px] p-6">
       <Icon />
 
       <div className="mt-6 flex items-end justify-between">
         <dl>
-          <dt className="mb-1.5 text-heading-6 font-bold text-dark dark:text-white">
-            {data.value}
-          </dt>
+          <dt className="mb-1.5 text-heading-6 font-bold">{data.value}</dt>
 
-          <dd className="text-sm font-medium text-dark-6">{label}</dd>
+          <dd className="dash-muted text-sm font-medium">{label}</dd>
         </dl>
 
         <dl
