@@ -69,8 +69,8 @@ export function Header() {
           </p>
         </div>
 
-        <div className="flex flex-1 items-center justify-end gap-2 min-[375px]:gap-4">
-          <div className="relative w-full max-w-[300px]">
+        <div className="flex flex-1 items-center justify-end gap-2 min-[375px]:gap-4 max-[850px]:pl-4">
+          <div className="relative w-full max-w-[300px] max-[850px]:mx-auto">
             <input
               type="search"
               placeholder="Search"
@@ -80,9 +80,11 @@ export function Header() {
             <SearchIcon className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 max-[1015px]:size-5" />
           </div>
 
-          <Notification />
+          <div className="max-[850px]:order-3">
+            <Notification />
+          </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 max-[850px]:order-2">
             <UserInfo />
           </div>
         </div>
