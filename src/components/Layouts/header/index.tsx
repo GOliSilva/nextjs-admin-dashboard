@@ -13,10 +13,10 @@ export function Header() {
   const { toggleSidebar, isMobile } = useSidebarContext();
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between bg-transparent px-4 py-5 text-[var(--dash-text)] shadow-[var(--dash-shadow-elevated)] md:px-5 2xl:px-10">
+    <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-5 text-[var(--dash-text)] md:px-5 2xl:px-10 dash-glass-header">
       <button
         onClick={toggleSidebar}
-        className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-surface-deep)] px-1.5 py-1 text-[var(--dash-text)] hover:bg-[var(--dash-active-bg)] lg:hidden"
+        className="rounded-lg px-1.5 py-1 text-[var(--dash-text)] hover:bg-[var(--dash-active-bg)] lg:hidden dash-glass-control"
       >
         <MenuIcon />
         <span className="sr-only">Toggle Sidebar</span>
@@ -46,7 +46,7 @@ export function Header() {
           <input
             type="search"
             placeholder="Search"
-            className="flex w-full items-center gap-3.5 rounded-full border border-[var(--dash-border)] bg-[var(--dash-overlay)] py-3 pl-[53px] pr-5 text-[var(--dash-text)] outline-none transition-colors placeholder:text-[var(--dash-text-muted)] focus-visible:border-[var(--dash-ring)]"
+            className="flex w-full items-center gap-3.5 rounded-full py-3 pl-[53px] pr-5 text-[var(--dash-text)] outline-none transition-colors placeholder:text-[var(--dash-text-muted)] focus-visible:border-[var(--dash-ring)] dash-glass-control"
           />
 
           <SearchIcon className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 max-[1015px]:size-5" />
