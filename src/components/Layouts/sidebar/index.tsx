@@ -25,22 +25,20 @@ export function Sidebar() {
   };
 
   useEffect(() => {
-    // Keep collapsible open, when it's subpage is active
-    NAV_DATA.some((section) => {
-      return section.items.some((item) => {
-        return item.items.some((subItem) => {
-          if (subItem.url === pathname) {
-            if (!expandedItems.includes(item.title)) {
-              toggleExpanded(item.title);
-            }
+    // Auto-expand the active section on navigation, but don't force it open after manual collapse.
+    const activeTitle =
+      NAV_DATA.flatMap((section) => section.items).find((item) =>
+        item.items.some((subItem) => subItem.url === pathname),
+      )?.title || "";
 
-            // Break the loop
-            return true;
-          }
-        });
-      });
-    });
-  }, [pathname, expandedItems]);
+    if (!activeTitle) {
+      return;
+    }
+
+    setExpandedItems((prev) =>
+      prev.includes(activeTitle) ? prev : [activeTitle],
+    );
+  }, [pathname]);
 
   return (
     <>

@@ -1,4 +1,5 @@
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
+import { AlarmsTable } from "@/components/Tables/alarms-table";
 import { InvoiceTable } from "@/components/Tables/invoice-table";
 import { TopChannels } from "@/components/Tables/top-channels";
 import { TopChannelsSkeleton } from "@/components/Tables/top-channels/skeleton";
@@ -18,6 +19,8 @@ const TablesPage = () => {
       <Breadcrumb pageName="Tables" />
 
       <div className="space-y-10">
+        <AlarmsTable />
+
         <Suspense fallback={<TopChannelsSkeleton />}>
           <TopChannels />
         </Suspense>

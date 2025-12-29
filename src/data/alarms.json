@@ -1,0 +1,146 @@
+[
+  {
+    "id": 1,
+    "variableName": "corrente",
+    "value": "1.40 A",
+    "description": "corrente acima do esperado na Fase A",
+    "time": "2025-01-05T08:14:00Z",
+    "priority": "high"
+  },
+  {
+    "id": 2,
+    "variableName": "tensao",
+    "value": "229 V",
+    "description": "tensao elevada na Fase A",
+    "time": "2025-01-06T13:45:00Z",
+    "priority": "medium"
+  },
+  {
+    "id": 3,
+    "variableName": "fator_potencia",
+    "value": "0.97",
+    "description": "fator de potencia abaixo do alvo na Fase A",
+    "time": "2025-01-07T04:22:00Z",
+    "priority": "low"
+  },
+  {
+    "id": 4,
+    "variableName": "potencia",
+    "value": "312 kW",
+    "description": "potencia elevada registrada na Fase A",
+    "time": "2025-01-08T17:05:00Z",
+    "priority": "medium"
+  },
+  {
+    "id": 5,
+    "variableName": "correnteNeutro",
+    "value": "12.40 A",
+    "description": "corrente de neutro acima do limite",
+    "time": "2025-01-09T11:38:00Z",
+    "priority": "high"
+  },
+  {
+    "id": 6,
+    "variableName": "dht",
+    "value": "3.80 %",
+    "description": "distorcao harmonica total fora do padrao",
+    "time": "2025-01-10T22:19:00Z",
+    "priority": "low"
+  },
+  {
+    "id": 7,
+    "variableName": "fatorPotenciaTotal",
+    "value": "0.97",
+    "description": "fator de potencia total abaixo do esperado",
+    "time": "2025-01-11T09:02:00Z",
+    "priority": "medium"
+  },
+  {
+    "id": 8,
+    "variableName": "frequencia",
+    "value": "60.00 Hz",
+    "description": "variacao de frequencia detectada",
+    "time": "2025-01-12T16:48:00Z",
+    "priority": "low"
+  },
+  {
+    "id": 9,
+    "variableName": "TensaoA",
+    "value": "244.61 V",
+    "description": "tensao acima do limite na fase A",
+    "time": "2025-01-13T01:27:00Z",
+    "priority": "high"
+  },
+  {
+    "id": 10,
+    "variableName": "CorrenteA",
+    "value": "0.58 A",
+    "description": "corrente abaixo do normal na fase A",
+    "time": "2025-01-14T19:30:00Z",
+    "priority": "medium"
+  },
+  {
+    "id": 11,
+    "variableName": "PotenciaComplexa",
+    "value": "528.65 kVA",
+    "description": "potencia complexa elevada",
+    "time": "2025-01-15T06:55:00Z",
+    "priority": "medium"
+  },
+  {
+    "id": 12,
+    "variableName": "Temperatura",
+    "value": "37.00 C",
+    "description": "temperatura acima do limite",
+    "time": "2025-01-16T14:12:00Z",
+    "priority": "high"
+  },
+  {
+    "id": 13,
+    "variableName": "correnteB",
+    "value": "0.75 A",
+    "description": "corrente abaixo do normal na Fase B",
+    "time": "2025-01-17T10:33:00Z",
+    "priority": "medium"
+  },
+  {
+    "id": 14,
+    "variableName": "tensaoB",
+    "value": "210 V",
+    "description": "tensao baixa na Fase B",
+    "time": "2025-01-18T12:00:00Z",
+    "priority": "high"
+  },
+  {
+    "id": 15,
+    "variableName": "potenciaB",
+    "value": "245 kW",
+    "description": "potencia baixa na Fase B",
+    "time": "2025-01-19T09:55:00Z",
+    "priority": "medium"
+  },
+  {
+    "id": 16,
+    "variableName": "correnteC",
+    "value": "1.10 A",
+    "description": "corrente estável na Fase C",
+    "time": "2025-01-20T15:42:00Z",
+    "priority": "low"
+  },
+  {
+    "id": 17,
+    "variableName": "fator_potenciaC",
+    "value": "0.98",
+    "description": "fator de potência estável na Fase C",
+    "time": "2025-01-21T18:30:00Z",
+    "priority": "medium"
+  },
+  {
+    "id": 18,
+    "variableName": "frequenciaC",
+    "value": "60.10 Hz",
+    "description": "frequencia ligeiramente acima do limite na Fase C",
+    "time": "2025-01-22T16:10:00Z",
+    "priority": "low"
+  }
+]

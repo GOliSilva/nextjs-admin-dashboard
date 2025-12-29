@@ -25,6 +25,10 @@ export const NAV_DATA = [
             url: "/fase-c",
           },
           {
+            title: "Alarms",
+            url: "/alarms",
+          },
+          {
             title: "Informações adicionais",
             url: "/informacoes-adicionais",
           },
@@ -66,6 +70,12 @@ export const NAV_DATA = [
             url: "/tables",
           },
         ],
+      },
+      {
+        title: "Alarms",
+        url: "/alarms",
+        icon: Icons.Table,
+        items: [],
       },
       {
         title: "Pages",

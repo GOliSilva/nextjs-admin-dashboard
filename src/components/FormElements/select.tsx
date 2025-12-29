@@ -9,10 +9,11 @@ type PropsType = {
   items: { value: string; label: string }[];
   prefixIcon?: React.ReactNode;
   className?: string;
-} & (
-  | { placeholder?: string; defaultValue: string }
-  | { placeholder: string; defaultValue?: string }
-);
+  placeholder?: string;
+  defaultValue?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+};
 
 export function Select({
   items,
@@ -21,10 +22,14 @@ export function Select({
   placeholder,
   prefixIcon,
   className,
+  value,
+  onChange,
 }: PropsType) {
   const id = useId();
 
   const [isOptionSelected, setIsOptionSelected] = useState(false);
+  const selectedValue = value ?? defaultValue ?? "";
+  const showSelectedStyle = isOptionSelected || selectedValue !== "";
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -44,11 +49,16 @@ export function Select({
 
         <select
           id={id}
-          defaultValue={defaultValue || ""}
-          onChange={() => setIsOptionSelected(true)}
+          {...(value !== undefined
+            ? { value }
+            : { defaultValue: defaultValue || "" })}
+          onChange={(event) => {
+            setIsOptionSelected(true);
+            onChange?.(event.target.value);
+          }}
           className={cn(
             "w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 outline-none transition focus:border-primary active:border-primary dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary [&>option]:text-dark-5 dark:[&>option]:text-dark-6",
-            isOptionSelected && "text-dark dark:text-white",
+            showSelectedStyle && "text-dark dark:text-white",
             prefixIcon && "pl-11.5",
           )}
         >
