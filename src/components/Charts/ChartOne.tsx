@@ -14,6 +14,22 @@ const ChartOne: React.FC = () => {
       data: [15, 9, 17, 32, 25, 68, 80, 68, 84, 94, 74, 62],
     },
   ];
+  const categories = [
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+  ];
+  const maxXTicks = 12;
+  const xTickAmount = Math.min(maxXTicks, categories.length);
 
   const options: ApexOptions = {
     legend: {
@@ -97,20 +113,8 @@ const ChartOne: React.FC = () => {
     },
     xaxis: {
       type: "category",
-      categories: [
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-      ],
+      tickAmount: xTickAmount,
+      categories,
       axisBorder: {
         show: false,
       },

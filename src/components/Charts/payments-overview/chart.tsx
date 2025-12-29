@@ -18,6 +18,12 @@ const Chart = dynamic(() => import("react-apexcharts"), {
 
 export function PaymentsOverviewChart({ series, colors }: PropsType) {
   const isMobile = useIsMobile();
+  const maxXTicks = 12;
+  const dataPoints = series.reduce(
+    (max, item) => Math.max(max, item.data.length),
+    0,
+  );
+  const xTickAmount = dataPoints > 0 ? Math.min(maxXTicks, dataPoints) : maxXTicks;
 
   const options: ApexOptions = {
     legend: {
@@ -85,6 +91,7 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
       },
     },
     xaxis: {
+      tickAmount: xTickAmount,
       axisBorder: {
         show: false,
       },
