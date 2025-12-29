@@ -18,7 +18,7 @@ export function EnergyChart({ categories, anoAtual, anoAnterior }: PropsType) {
         colors: ["#5750F1", "#0ABEF9"],
         chart: {
             type: "bar",
-            stacked: false, // Side by side for comparison
+            stacked: false,
             toolbar: {
                 show: false,
             },
@@ -33,7 +33,7 @@ export function EnergyChart({ categories, anoAtual, anoAnterior }: PropsType) {
                     plotOptions: {
                         bar: {
                             borderRadius: 3,
-                            columnWidth: "50%",
+                            columnWidth: "35%",
                         },
                     },
                 },
@@ -43,8 +43,9 @@ export function EnergyChart({ categories, anoAtual, anoAnterior }: PropsType) {
             bar: {
                 horizontal: false,
                 borderRadius: 3,
-                columnWidth: "50%",
+                columnWidth: "35%",
                 borderRadiusApplication: "end",
+                borderRadiusWhenStacked: "last",
             },
         },
         dataLabels: {
