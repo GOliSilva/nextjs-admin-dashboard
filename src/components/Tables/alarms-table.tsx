@@ -195,17 +195,23 @@ export function AlarmsTable() {
         />
       </div>
 
-      <div className="mt-6 max-h-[520px] overflow-y-auto">
-        <Table>
+      <div className="mt-6">
+        <Table wrapperClassName="max-h-[520px] overflow-y-auto">
           <TableHeader>
-            <TableRow className="border-none bg-[#F7F9FC] dark:bg-dark-2 [&>th]:py-4 [&>th]:text-base [&>th]:text-dark [&>th]:dark:text-white">
-              <TableHead className="min-w-[180px] xl:pl-7.5">
+            <TableRow className="border-none [&>th]:py-4 [&>th]:text-base [&>th]:text-dark [&>th]:dark:text-white">
+              <TableHead className="sticky top-0 z-10 min-w-[180px] bg-[#F7F9FC] xl:pl-7.5 dark:bg-dark-2">
                 Variável
               </TableHead>
-              <TableHead className="min-w-[120px]">Valor</TableHead>
-              <TableHead>Descrição</TableHead>
-              <TableHead className="min-w-[170px]">Horário</TableHead>
-              <TableHead className="min-w-[120px] text-left xl:pr-7.5">
+              <TableHead className="sticky top-0 z-10 min-w-[120px] bg-[#F7F9FC] dark:bg-dark-2">
+                Valor
+              </TableHead>
+              <TableHead className="sticky top-0 z-10 bg-[#F7F9FC] dark:bg-dark-2">
+                Descrição
+              </TableHead>
+              <TableHead className="sticky top-0 z-10 min-w-[170px] bg-[#F7F9FC] dark:bg-dark-2">
+                Horário
+              </TableHead>
+              <TableHead className="sticky top-0 z-10 min-w-[120px] bg-[#F7F9FC] text-left xl:pr-7.5 dark:bg-dark-2">
                 Prioridade
               </TableHead>
             </TableRow>
