@@ -146,5 +146,72 @@
             "23": 145,
             "24": 123
         }
+    },
+    "energia": {
+        "ponta": {
+            "ano_atual": {
+                "Janeiro": 45,
+                "Fevereiro": 42,
+                "Marco": 48,
+                "Abril": 46,
+                "Maio": 50,
+                "Junho": 44,
+                "Julho": 43,
+                "Agosto": 45,
+                "Setembro": 47,
+                "Outubro": 49,
+                "Novembro": 51,
+                "Dezembro": 55
+            },
+            "ano_anterior": {
+                "Janeiro": 43,
+                "Fevereiro": 40,
+                "Marco": 46,
+                "Abril": 44,
+                "Maio": 48,
+                "Junho": 42,
+                "Julho": 41,
+                "Agosto": 43,
+                "Setembro": 45,
+                "Outubro": 47,
+                "Novembro": 49,
+                "Dezembro": 52
+            }
+        },
+        "nao_ponta": {
+            "ano_atual": {
+                "Janeiro": 120,
+                "Fevereiro": 110,
+                "Marco": 122,
+                "Abril": 122,
+                "Maio": 125,
+                "Junho": 116,
+                "Julho": 115,
+                "Agosto": 117,
+                "Setembro": 122,
+                "Outubro": 123,
+                "Novembro": 127,
+                "Dezembro": 130
+            },
+            "ano_anterior": {
+                "Janeiro": 115,
+                "Fevereiro": 108,
+                "Marco": 118,
+                "Abril": 120,
+                "Maio": 120,
+                "Junho": 112,
+                "Julho": 110,
+                "Agosto": 112,
+                "Setembro": 118,
+                "Outubro": 120,
+                "Novembro": 123,
+                "Dezembro": 128
+            }
+        }
+    },
+    "fase": {
+        "angulo_corrente": -28,
+        "angulo_tensao": 0,
+        "defasagem": 28
     }
 }

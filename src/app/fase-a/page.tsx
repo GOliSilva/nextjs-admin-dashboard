@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { FaseACards } from "./_components/fase-a-cards";
 import { FaseAChart } from "./_components/fase-a-chart";
-import { WeeksProfit } from "@/components/Charts/weeks-profit";
-import { UsedDevices } from "@/components/Charts/used-devices";
+import { FaseAEnergyChart } from "./_components/fase-a-energy-chart";
+import { FaseAPhaseInfo } from "./_components/fase-a-phase-info";
 import { createTimeFrameExtractor } from "@/utils/timeframe-extractor";
 import { OverviewCardsSkeleton } from "@/app/(home)/_components/overview-cards/skeleton";
 
@@ -18,9 +18,7 @@ export default async function FaseAPage({ searchParams }: PropsType) {
 
   const metric = extractTimeFrame("metric")?.split(":")[1];
   const timeFrame = extractTimeFrame("time_frame")?.split(":")[1];
-
-  // Preserve keys for other charts if they rely on specific frame keys or defaults
-  // Assuming they handle undefined gracefully or have defaults.
+  const energyType = extractTimeFrame("energy_type")?.split(":")[1];
 
   return (
     <>
@@ -35,13 +33,14 @@ export default async function FaseAPage({ searchParams }: PropsType) {
           timeFrame={timeFrame}
         />
 
-        <WeeksProfit
+        <FaseAEnergyChart
           className="col-span-12 xl:col-span-5"
+          energyType={energyType}
         />
+      </div>
 
-        <UsedDevices
-          className="col-span-12 xl:col-span-5"
-        />
+      <div className="mt-4 md:mt-6 2xl:mt-9">
+        <FaseAPhaseInfo />
       </div>
     </>
   );
