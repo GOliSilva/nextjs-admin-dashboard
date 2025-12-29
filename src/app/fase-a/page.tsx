@@ -1,8 +1,8 @@
 import { Suspense } from "react";
-import { FaseACards } from "./_components/fase-a-cards";
-import { FaseAChart } from "./_components/fase-a-chart";
-import { FaseAEnergyChart } from "./_components/fase-a-energy-chart";
-import { FaseAPhaseInfo } from "./_components/fase-a-phase-info";
+import { PhaseCards } from "@/components/phase-dashboard/phase-cards";
+import { PhaseChart } from "@/components/phase-dashboard/phase-chart";
+import { PhaseEnergyChart } from "@/components/phase-dashboard/phase-energy-chart";
+import { PhaseInfo } from "@/components/phase-dashboard/phase-info";
 import { createTimeFrameExtractor } from "@/utils/timeframe-extractor";
 import { OverviewCardsSkeleton } from "@/app/(home)/_components/overview-cards/skeleton";
 
@@ -23,24 +23,26 @@ export default async function FaseAPage({ searchParams }: PropsType) {
   return (
     <>
       <Suspense fallback={<OverviewCardsSkeleton />}>
-        <FaseACards />
+        <PhaseCards phase="A" />
       </Suspense>
 
       <div className="mt-4 grid grid-cols-12 gap-4 md:mt-6 md:gap-6 2xl:mt-9 2xl:gap-7.5">
-        <FaseAChart
+        <PhaseChart
           className="col-span-12 xl:col-span-7"
+          phase="A"
           metric={metric}
           timeFrame={timeFrame}
         />
 
-        <FaseAEnergyChart
+        <PhaseEnergyChart
           className="col-span-12 xl:col-span-5"
+          phase="A"
           energyType={energyType}
         />
       </div>
 
       <div className="mt-4 md:mt-6 2xl:mt-9">
-        <FaseAPhaseInfo />
+        <PhaseInfo phase="A" />
       </div>
     </>
   );
