@@ -7,11 +7,15 @@ import { PaymentsOverviewChart } from "./chart";
 type PropsType = {
   timeFrame?: string;
   className?: string;
+  title?: string;
+  sectionKey?: string;
 };
 
 export async function PaymentsOverview({
   timeFrame = "monthly",
   className,
+  title = "Payments Overview",
+  sectionKey = "payments_overview",
 }: PropsType) {
   const data = await getPaymentsOverviewData(timeFrame);
 
@@ -24,10 +28,10 @@ export async function PaymentsOverview({
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-body-2xlg font-bold text-dark dark:text-white">
-          Payments Overview
+          {title}
         </h2>
 
-        <PeriodPicker defaultValue={timeFrame} sectionKey="payments_overview" />
+        <PeriodPicker defaultValue={timeFrame} sectionKey={sectionKey} />
       </div>
 
       <PaymentsOverviewChart data={data} />
