@@ -34,6 +34,18 @@ const normalizeMode = (value?: string) => {
   return value === "geracao" ? "geracao" : "consumo";
 };
 
+const getModeLabel = (value: string) => {
+  if (value === "geracao") {
+    return "Pot\u00EAncia";
+  }
+
+  if (value === "consumo") {
+    return "Consumo";
+  }
+
+  return value;
+};
+
 export async function PaymentsOverview({
   timeFrame,
   className,
@@ -46,6 +58,16 @@ export async function PaymentsOverview({
 }: PropsType) {
   const showModePicker = Boolean(modeSectionKey);
   const normalizedMode = normalizeMode(mode);
+  const resolvedTitle =
+    showModePicker && title === "Payments Overview"
+      ? getModeLabel(normalizedMode)
+      : title;
+  const resolvedModeItems = (modeItems ?? ["consumo", "geracao"]).map(
+    (item) => ({
+      value: item,
+      label: getModeLabel(item),
+    }),
+  );
   const resolvedTimeFrame = showModePicker
     ? normalizePeriod(timeFrame)
     : timeFrame ?? "monthly";
@@ -72,11 +94,11 @@ export async function PaymentsOverview({
 
       series = [
         {
-          name: "Geracao direta",
+          name: "Consumo",
           data: direta,
         },
         {
-          name: "Geracao reversa",
+          name: "Gera\u00E7\u00E3o",
           data: reversa,
         },
       ];
@@ -84,7 +106,7 @@ export async function PaymentsOverview({
 
     summaryItems = series.map((item) => ({
       label: item.name,
-      value: standardFormat(sumSeries(item)),
+      value: `${standardFormat(sumSeries(item))} W`,
     }));
   } else {
     const data = await getPaymentsOverviewData(resolvedTimeFrame);
@@ -121,7 +143,7 @@ export async function PaymentsOverview({
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-body-2xlg font-bold text-dark dark:text-white">
-          {title}
+          {resolvedTitle}
         </h2>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -129,7 +151,7 @@ export async function PaymentsOverview({
             <PeriodPicker
               defaultValue={normalizedMode}
               sectionKey={modeSectionKey ?? "overview_mode"}
-              items={modeItems ?? ["consumo", "geracao"]}
+              items={resolvedModeItems}
             />
           )}
 

@@ -6,9 +6,11 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Dropdown, DropdownContent, DropdownTrigger } from "./ui/dropdown";
 
-type PropsType<TItem> = {
+type PickerItem<TItem extends string> = TItem | { value: TItem; label: string };
+
+type PropsType<TItem extends string> = {
   defaultValue?: TItem;
-  items?: TItem[];
+  items?: PickerItem<TItem>[];
   sectionKey: string;
   minimal?: boolean;
 };
@@ -24,6 +26,14 @@ export function PeriodPicker<TItem extends string>({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const fallbackItems = ["monthly", "yearly"] as TItem[];
+  const resolvedItems = (items ?? fallbackItems).map((item) =>
+    typeof item === "string" ? { value: item, label: item } : item,
+  );
+  const displayValue = defaultValue
+    ? resolvedItems.find((item) => item.value === defaultValue)?.label ??
+      defaultValue
+    : "Time Period";
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -36,7 +46,7 @@ export function PeriodPicker<TItem extends string>({
             "border-none bg-transparent p-0 text-dark dark:bg-transparent dark:text-white",
         )}
       >
-        <span className="capitalize">{defaultValue || "Time Period"}</span>
+        <span className="capitalize">{displayValue}</span>
 
         <ChevronUpIcon className="size-4 rotate-180 transition-transform" />
       </DropdownTrigger>
@@ -46,14 +56,14 @@ export function PeriodPicker<TItem extends string>({
         className="min-w-[7rem] overflow-hidden rounded-lg border border-[#E8E8E8] bg-white p-1 font-medium text-dark-5 shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 dark:border-dark-3 dark:bg-dark-2 dark:text-current"
       >
         <ul>
-          {(items || ["monthly", "yearly"]).map((item) => (
+          {resolvedItems.map((item) => (
             <li key={crypto.randomUUID()}>
               <button
                 className="flex w-full select-none items-center truncate rounded-md px-3 py-2 text-sm capitalize outline-none hover:bg-[#F9FAFB] hover:text-dark-3 dark:hover:bg-[#FFFFFF1A] dark:hover:text-white"
                 onClick={() => {
                   const queryString = createQueryString({
                     sectionKey,
-                    value: item,
+                    value: item.value,
                     selectedTimeFrame: searchParams.get(PARAM_KEY),
                   });
 
@@ -64,7 +74,7 @@ export function PeriodPicker<TItem extends string>({
                   setIsOpen(false);
                 }}
               >
-                {item}
+                {item.label}
               </button>
             </li>
           ))}
