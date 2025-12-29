@@ -1,0 +1,30 @@
+{
+  "thisYear": {
+    "Janeiro": "520.00",
+    "Fevereiro": "480.00",
+    "Marco": "560.00",
+    "Abril": "610.00",
+    "Maio": "590.00",
+    "Junho": "640.00",
+    "Julho": "670.00",
+    "Agosto": "690.00",
+    "Setembro": "660.00",
+    "Outubro": "720.00",
+    "Novembro": "705.00",
+    "Dezembro": "750.00"
+  },
+  "lastYear": {
+    "Janeiro": "500.00",
+    "Fevereiro": "470.00",
+    "Marco": "540.00",
+    "Abril": "590.00",
+    "Maio": "560.00",
+    "Junho": "620.00",
+    "Julho": "645.00",
+    "Agosto": "670.00",
+    "Setembro": "640.00",
+    "Outubro": "690.00",
+    "Novembro": "680.00",
+    "Dezembro": "720.00"
+  }
+}

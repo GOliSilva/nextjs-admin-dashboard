@@ -1,6 +1,6 @@
 import { PeriodPicker } from "@/components/period-picker";
 import { cn } from "@/lib/utils";
-import { getDevicesUsedData } from "@/services/charts.services";
+import { getConsumoPorFase } from "@/services/consumo-por-fase.services";
 import { DonutChart } from "./chart";
 
 type PropsType = {
@@ -9,10 +9,11 @@ type PropsType = {
 };
 
 export async function UsedDevices({
-  timeFrame = "monthly",
+  timeFrame = "semanal",
   className,
 }: PropsType) {
-  const data = await getDevicesUsedData(timeFrame);
+  const period = timeFrame === "mensal" ? "mensal" : "semanal";
+  const data = await getConsumoPorFase(period);
 
   return (
     <div
@@ -23,10 +24,14 @@ export async function UsedDevices({
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-body-2xlg font-bold text-dark dark:text-white">
-          Used Devices
+          Consumo por Fase
         </h2>
 
-        <PeriodPicker defaultValue={timeFrame} sectionKey="used_devices" />
+        <PeriodPicker
+          defaultValue={period}
+          sectionKey="used_devices"
+          items={["semanal", "mensal"]}
+        />
       </div>
 
       <div className="grid place-items-center">

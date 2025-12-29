@@ -27,7 +27,7 @@ const sumSeries = (series: SeriesItem) => {
 };
 
 const normalizePeriod = (value?: string) => {
-  return value === "semanal" ? "semanal" : "anual";
+  return value === "diario" ? "diario" : "semanal";
 };
 
 const normalizeMode = (value?: string) => {

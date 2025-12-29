@@ -44,7 +44,7 @@ export async function OverviewCardsGroup() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5">
       <OverviewCard
-        label="Tensao A"
+        label="Tensão A"
         data={{
           value: tensaoA.value,
           indicatorValue: tensaoA.indicatorValue,
@@ -56,7 +56,7 @@ export async function OverviewCardsGroup() {
       />
 
       <OverviewCard
-        label="Tensao B"
+        label="Tensão B"
         data={{
           value: tensaoB.value,
           indicatorValue: tensaoB.indicatorValue,
@@ -68,7 +68,7 @@ export async function OverviewCardsGroup() {
       />
 
       <OverviewCard
-        label="Tensao C"
+        label="Tensão C"
         data={{
           value: tensaoC.value,
           indicatorValue: tensaoC.indicatorValue,
@@ -80,10 +80,11 @@ export async function OverviewCardsGroup() {
       />
 
       <OverviewCard
-        label="Consumo"
+        label="Potência"
         data={{
-          value: phaseConsumption.Potenciadireta,
+          value: `${phaseConsumption.Potenciadireta} W`,
           growthRate: 0,
+          hideIndicator: true,
         }}
         Icon={icons.Users}
       />

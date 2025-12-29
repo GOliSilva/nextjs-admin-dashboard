@@ -65,22 +65,45 @@ export async function getPaymentsOverviewData(
   if (timeFrame === "semanal") {
     return {
       received: [
-        { x: "Seg", y: 120 },
-        { x: "Ter", y: 145 },
-        { x: "Qua", y: 98 },
-        { x: "Qui", y: 168 },
-        { x: "Sex", y: 210 },
-        { x: "Sab", y: 185 },
-        { x: "Dom", y: 140 },
+        { x: "Seg", y: 18 },
+        { x: "Ter", y: 22 },
+        { x: "Qua", y: 16 },
+        { x: "Qui", y: 24 },
+        { x: "Sex", y: 28 },
+        { x: "Sab", y: 20 },
+        { x: "Dom", y: 14 },
       ],
       due: [
-        { x: "Seg", y: 90 },
-        { x: "Ter", y: 110 },
-        { x: "Qua", y: 120 },
-        { x: "Qui", y: 130 },
-        { x: "Sex", y: 160 },
-        { x: "Sab", y: 150 },
-        { x: "Dom", y: 125 },
+        { x: "Seg", y: 12 },
+        { x: "Ter", y: 15 },
+        { x: "Qua", y: 13 },
+        { x: "Qui", y: 17 },
+        { x: "Sex", y: 19 },
+        { x: "Sab", y: 16 },
+        { x: "Dom", y: 11 },
+      ],
+    };
+  }
+
+  if (timeFrame === "diario") {
+    return {
+      received: [
+        { x: "00", y: 3 },
+        { x: "04", y: 4 },
+        { x: "08", y: 6 },
+        { x: "12", y: 7 },
+        { x: "16", y: 6 },
+        { x: "20", y: 5 },
+        { x: "23", y: 4 },
+      ],
+      due: [
+        { x: "00", y: 2 },
+        { x: "04", y: 3 },
+        { x: "08", y: 4 },
+        { x: "12", y: 5 },
+        { x: "16", y: 4 },
+        { x: "20", y: 3 },
+        { x: "23", y: 2 },
       ],
     };
   }

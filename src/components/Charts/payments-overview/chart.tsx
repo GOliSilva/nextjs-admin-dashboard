@@ -30,6 +30,14 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
       toolbar: {
         show: false,
       },
+      zoom: {
+        enabled: true,
+        type: "x",
+        autoScaleYaxis: true,
+      },
+      selection: {
+        enabled: true,
+      },
       fontFamily: "inherit",
     },
     fill: {
@@ -60,7 +68,7 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
       curve: "smooth",
       width: isMobile ? 2 : 3,
     },
-    grid: {
+        grid: {
       strokeDashArray: 5,
       yaxis: {
         lines: {

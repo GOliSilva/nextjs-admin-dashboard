@@ -18,7 +18,7 @@ export function DonutChart({ data }: PropsType) {
       type: "donut",
       fontFamily: "inherit",
     },
-    colors: ["#5750F1", "#5475E5", "#8099EC", "#ADBCF2"],
+    colors: ["#0ABEF9", "#22C55E", "#F59E0B"],
     labels: data.map((item) => item.name),
     legend: {
       show: true,
@@ -29,7 +29,8 @@ export function DonutChart({ data }: PropsType) {
       },
       formatter: (legendName, opts) => {
         const { seriesPercent } = opts.w.globals;
-        return `${legendName}: ${seriesPercent[opts.seriesIndex]}%`;
+        const percent = Math.round(seriesPercent[opts.seriesIndex]);
+        return `${legendName}: ${percent}%`;
       },
     },
     plotOptions: {
@@ -42,7 +43,7 @@ export function DonutChart({ data }: PropsType) {
             total: {
               show: true,
               showAlways: true,
-              label: "Visitors",
+              label: "Total",
               fontSize: "16px",
               fontWeight: "400",
             },

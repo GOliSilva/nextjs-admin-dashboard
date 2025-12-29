@@ -1,6 +1,6 @@
 import { PeriodPicker } from "@/components/period-picker";
 import { cn } from "@/lib/utils";
-import { getWeeksProfitData } from "@/services/charts.services";
+import { getConsumoPontaSeries } from "@/services/consumo-ponta.services";
 import { WeeksProfitChart } from "./chart";
 
 type PropsType = {
@@ -9,7 +9,8 @@ type PropsType = {
 };
 
 export async function WeeksProfit({ className, timeFrame }: PropsType) {
-  const data = await getWeeksProfitData(timeFrame);
+  const resolvedMode = timeFrame === "fora ponta" ? "fora ponta" : "ponta";
+  const data = await getConsumoPontaSeries(resolvedMode);
 
   return (
     <div
@@ -20,12 +21,14 @@ export async function WeeksProfit({ className, timeFrame }: PropsType) {
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-body-2xlg font-bold text-dark dark:text-white">
-          Profit {timeFrame || "this week"}
+          {resolvedMode === "fora ponta"
+            ? "Consumo fora ponta"
+            : "Consumo ponta"}
         </h2>
 
         <PeriodPicker
-          items={["this week", "last week"]}
-          defaultValue={timeFrame || "this week"}
+          items={["ponta", "fora ponta"]}
+          defaultValue={resolvedMode}
           sectionKey="weeks_profit"
         />
       </div>

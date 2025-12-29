@@ -1,6 +1,6 @@
 import geracaoData from "@/data/geracao.json";
 
-export type GeracaoPeriod = "anual" | "semanal";
+export type GeracaoPeriod = "semanal" | "diario";
 
 const toSeries = (source: Record<string, string>) => {
   return Object.entries(source).map(([x, value]) => {
@@ -17,7 +17,7 @@ export async function getGeracaoSeries(period: GeracaoPeriod) {
   // Fake delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
-  const key = period === "semanal" ? "week" : "year";
+  const key = period === "diario" ? "day" : "week";
 
   return {
     direta: toSeries(geracaoData.direta[key]),
