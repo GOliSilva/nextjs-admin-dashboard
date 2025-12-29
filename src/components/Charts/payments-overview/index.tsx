@@ -2,8 +2,8 @@ import { PeriodPicker } from "@/components/period-picker";
 import { standardFormat } from "@/lib/format-number";
 import { cn } from "@/lib/utils";
 import { getPaymentsOverviewData } from "@/services/charts.services";
-import { getConsumoSeries } from "@/services/consumo.services";
-import { getGeracaoSeries } from "@/services/geracao.services";
+import { getConsumoSeries, type ConsumoPeriod } from "@/services/consumo.services";
+import { getGeracaoSeries, type GeracaoPeriod } from "@/services/geracao.services";
 import { PaymentsOverviewChart } from "./chart";
 
 type PropsType = {
@@ -26,7 +26,7 @@ const sumSeries = (series: SeriesItem) => {
   return series.data.reduce((acc, point) => acc + point.y, 0);
 };
 
-const normalizePeriod = (value?: string) => {
+const normalizePeriod = (value?: string): ConsumoPeriod & GeracaoPeriod => {
   return value === "diario" ? "diario" : "semanal";
 };
 
@@ -68,8 +68,9 @@ export async function PaymentsOverview({
       label: getModeLabel(item),
     }),
   );
+  const resolvedPeriod = normalizePeriod(timeFrame);
   const resolvedTimeFrame = showModePicker
-    ? normalizePeriod(timeFrame)
+    ? resolvedPeriod
     : timeFrame ?? "monthly";
   const showTimeFramePicker =
     !showModePicker || normalizedMode === "consumo" || normalizedMode === "geracao";
@@ -80,7 +81,7 @@ export async function PaymentsOverview({
 
   if (showModePicker) {
     if (normalizedMode === "consumo") {
-      const consumoSeries = await getConsumoSeries(resolvedTimeFrame);
+      const consumoSeries = await getConsumoSeries(resolvedPeriod);
 
       series = [
         {
@@ -90,7 +91,7 @@ export async function PaymentsOverview({
       ];
       chartColors = ["#0ABEF9"];
     } else {
-      const { direta, reversa } = await getGeracaoSeries(resolvedTimeFrame);
+      const { direta, reversa } = await getGeracaoSeries(resolvedPeriod);
 
       series = [
         {

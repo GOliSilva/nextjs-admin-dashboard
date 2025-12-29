@@ -14,8 +14,8 @@ export function getCurrentValue(metric: FaseAMetrics): number {
     const dayData = faseAData[metric].day;
     // Get the last value from the day entries (assuming keys are 1..24)
     const keys = Object.keys(dayData).map(Number).sort((a, b) => a - b);
-    const lastKey = keys[keys.length - 1];
-    return dayData[lastKey as keyof typeof dayData];
+    const lastKey = String(keys[keys.length - 1]) as keyof typeof dayData;
+    return dayData[lastKey];
 }
 
 export function getChartSeries(metric: FaseAMetrics, timeFrame: TimeFrame) {
@@ -32,10 +32,13 @@ export function getChartSeries(metric: FaseAMetrics, timeFrame: TimeFrame) {
     } else {
         // Ensure order: 1..24
         const keys = Object.keys(data).map(Number).sort((a, b) => a - b);
-        return keys.map(hour => ({
+        return keys.map(hour => {
+            const hourKey = String(hour) as keyof typeof data;
+            return {
             x: `${hour}h`,
-            y: data[hour as keyof typeof data]
-        }));
+            y: data[hourKey]
+        };
+        });
     }
 }
 
