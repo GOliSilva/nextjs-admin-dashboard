@@ -1,0 +1,48 @@
+{
+  "direta":{"year": {
+    "Janeiro": "500.00",
+    "Fevereiro": "400.00",
+    "Marco": "550.00",
+    "Abril": "600.00",
+    "Maio": "450.00",
+    "Junho": "700.00",
+    "Julho": "650.00",
+    "Agosto": "720.00",
+    "Setembro": "680.00",
+    "Outubro": "710.00",
+    "Novembro": "690.00",
+    "Dezembro": "730.00"
+  },
+  "week": {
+    "Segunda": "100.00",
+    "Terca": "120.00",
+    "Quarta": "110.00",
+    "Quinta": "130.00",
+    "Sexta": "140.00",
+    "Sabado": "150.00",
+    "Domingo": "160.00"
+  }},
+  "reversa":{"year": {
+    "Janeiro": "500.00",
+    "Fevereiro": "400.00",
+    "Marco": "550.00",
+    "Abril": "600.00",
+    "Maio": "450.00",
+    "Junho": "700.00",
+    "Julho": "650.00",
+    "Agosto": "720.00",
+    "Setembro": "680.00",
+    "Outubro": "710.00",
+    "Novembro": "690.00",
+    "Dezembro": "730.00"
+  },
+  "week": {
+    "Segunda": "100.00",
+    "Terca": "120.00",
+    "Quarta": "110.00",
+    "Quinta": "130.00",
+    "Sexta": "140.00",
+    "Sabado": "150.00",
+    "Domingo": "160.00"
+  }}
+}

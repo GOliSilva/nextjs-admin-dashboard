@@ -43,7 +43,7 @@ export async function getPaymentsOverviewData(
   // Fake delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
-  if (timeFrame === "yearly") {
+  if (timeFrame === "yearly" || timeFrame === "anual") {
     return {
       received: [
         { x: 2020, y: 450 },
@@ -58,6 +58,29 @@ export async function getPaymentsOverviewData(
         { x: 2022, y: 1950 },
         { x: 2023, y: 2300 },
         { x: 2024, y: 1200 },
+      ],
+    };
+  }
+
+  if (timeFrame === "semanal") {
+    return {
+      received: [
+        { x: "Seg", y: 120 },
+        { x: "Ter", y: 145 },
+        { x: "Qua", y: 98 },
+        { x: "Qui", y: 168 },
+        { x: "Sex", y: 210 },
+        { x: "Sab", y: 185 },
+        { x: "Dom", y: 140 },
+      ],
+      due: [
+        { x: "Seg", y: 90 },
+        { x: "Ter", y: 110 },
+        { x: "Qua", y: 120 },
+        { x: "Qui", y: 130 },
+        { x: "Sex", y: 160 },
+        { x: "Sab", y: 150 },
+        { x: "Dom", y: 125 },
       ],
     };
   }

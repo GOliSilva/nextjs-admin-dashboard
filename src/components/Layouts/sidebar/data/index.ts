@@ -9,8 +9,24 @@ export const NAV_DATA = [
         icon: Icons.HomeIcon,
         items: [
           {
-            title: "eCommerce",
+            title: "Visão geral",
             url: "/",
+          },
+          {
+            title: "Fase A",
+            url: "/fase-a",
+          },
+          {
+            title: "Fase B",
+            url: "/fase-b",
+          },
+          {
+            title: "Fase C",
+            url: "/fase-c",
+          },
+          {
+            title: "Informações adicionais",
+            url: "/informacoes-adicionais",
           },
         ],
       },
