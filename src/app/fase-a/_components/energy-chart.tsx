@@ -15,7 +15,7 @@ type PropsType = {
 
 export function EnergyChart({ categories, anoAtual, anoAnterior }: PropsType) {
     const options: ApexOptions = {
-        colors: ["#5750F1", "#808080"], // Blue for Current, Gray for Previous
+        colors: ["#5750F1", "#0ABEF9"],
         chart: {
             type: "bar",
             stacked: false, // Side by side for comparison

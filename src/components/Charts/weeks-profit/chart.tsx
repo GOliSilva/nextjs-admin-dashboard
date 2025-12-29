@@ -19,7 +19,7 @@ export function WeeksProfitChart({ data }: PropsType) {
     colors: ["#5750F1","#0ABEF9"],
     chart: {
       type: "bar",
-      stacked: true,
+      stacked: false,
       toolbar: {
         show: false,
       },
@@ -45,7 +45,7 @@ export function WeeksProfitChart({ data }: PropsType) {
       bar: {
         horizontal: false,
         borderRadius: 3,
-        columnWidth: "25%",
+        columnWidth: "35%",
         borderRadiusApplication: "end",
         borderRadiusWhenStacked: "last",
       },
