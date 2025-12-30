@@ -60,6 +60,7 @@ export function HistoricoView() {
   const [endDateInput, setEndDateInput] = useState("");
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+  const [resultsKey, setResultsKey] = useState(0);
   const hasVariableFilter = filters.query.trim().length > 0;
 
   const variableOptions = useMemo(() => {
@@ -73,7 +74,7 @@ export function HistoricoView() {
   const suggestions = useMemo(() => {
     const normalizedQuery = searchTerm.trim().toLowerCase();
     if (!normalizedQuery) {
-      return [];
+      return variableOptions.slice(0, 6);
     }
 
     return variableOptions
@@ -89,6 +90,7 @@ export function HistoricoView() {
       startDate: startDateInput,
       endDate: endDateInput,
     });
+    setResultsKey((prev) => prev + 1);
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -288,169 +290,174 @@ export function HistoricoView() {
         </form>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60 sm:p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-dark dark:text-white">
-              Grafico do periodo
-            </h2>
+      <div
+        key={resultsKey}
+        className="space-y-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-500"
+      >
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60 sm:p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-dark dark:text-white">
+                Grafico do periodo
+              </h2>
+            </div>
+
+            {!hasVariableFilter ? (
+              <div className="flex h-[310px] items-center justify-center text-sm text-dark-5 dark:text-dark-6">
+                Selecione uma variavel para ver o historico.
+              </div>
+            ) : chartSeries.length === 0 ? (
+              <div className="flex h-[310px] items-center justify-center text-sm text-dark-5 dark:text-dark-6">
+                Sem dados para o periodo selecionado.
+              </div>
+            ) : (
+              <PaymentsOverviewChart series={chartSeries} />
+            )}
           </div>
 
-          {!hasVariableFilter ? (
-            <div className="flex h-[310px] items-center justify-center text-sm text-dark-5 dark:text-dark-6">
-              Selecione uma variavel para ver o historico.
+          <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60 sm:p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-dark dark:text-white">
+                Tabela do periodo
+              </h2>
             </div>
-          ) : chartSeries.length === 0 ? (
-            <div className="flex h-[310px] items-center justify-center text-sm text-dark-5 dark:text-dark-6">
-              Sem dados para o periodo selecionado.
-            </div>
-          ) : (
-            <PaymentsOverviewChart series={chartSeries} />
-          )}
-        </div>
 
-        <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60 sm:p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-dark dark:text-white">
-              Tabela do periodo
-            </h2>
-          </div>
-
-          <Table wrapperClassName="max-h-[300px] overflow-y-auto">
-            <TableHeader>
-              <TableRow className="border-none [&>th]:py-3 [&>th]:text-sm [&>th]:font-medium [&>th]:text-dark [&>th]:dark:text-white">
-                <TableHead className="sticky top-0 z-10 min-w-[160px] bg-[#F7F9FC] dark:bg-dark-2">
-                  Variavel
-                </TableHead>
-                <TableHead className="sticky top-0 z-10 min-w-[140px] bg-[#F7F9FC] dark:bg-dark-2">
-                  Valor
-                </TableHead>
-                <TableHead className="sticky top-0 z-10 min-w-[180px] bg-[#F7F9FC] dark:bg-dark-2">
-                  Horario
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {!hasVariableFilter ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={3}
-                    className="py-6 text-center text-dark-5 dark:text-dark-6"
-                  >
-                    Selecione uma variavel para pesquisar.
-                  </TableCell>
+            <Table wrapperClassName="max-h-[300px] overflow-y-auto">
+              <TableHeader>
+                <TableRow className="border-none [&>th]:py-3 [&>th]:text-sm [&>th]:font-medium [&>th]:text-dark [&>th]:dark:text-white">
+                  <TableHead className="sticky top-0 z-10 min-w-[160px] bg-[#F7F9FC] dark:bg-dark-2">
+                    Variavel
+                  </TableHead>
+                  <TableHead className="sticky top-0 z-10 min-w-[140px] bg-[#F7F9FC] dark:bg-dark-2">
+                    Valor
+                  </TableHead>
+                  <TableHead className="sticky top-0 z-10 min-w-[180px] bg-[#F7F9FC] dark:bg-dark-2">
+                    Horario
+                  </TableHead>
                 </TableRow>
-              ) : filteredHistory.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={3}
-                    className="py-6 text-center text-dark-5 dark:text-dark-6"
-                  >
-                    Nenhum dado encontrado para o periodo.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredHistory.map((item) => {
-                  const isMax = stats?.maxItem.id === item.id;
-                  const isMin = stats?.minItem.id === item.id;
-                  const highlightClass =
-                    isMax && isMin
-                      ? "bg-[#EAF6FF] dark:bg-[#1D2B3A]/70"
-                      : isMax
-                        ? "bg-[#E7F7EE] dark:bg-[#153326]/70"
-                        : isMin
-                          ? "bg-[#FDECEC] dark:bg-[#3A1B1B]/70"
-                          : "";
-
-                  return (
-                  <TableRow
-                    key={item.id}
-                    className={cn(
-                      "border-[#eee] dark:border-dark-3",
-                      highlightClass,
-                    )}
-                  >
-                    <TableCell>
-                      <span className="font-medium text-dark dark:text-white">
-                        {item.variableName}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-dark dark:text-white">
-                        {item.value} {item.unit}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-dark dark:text-white">
-                        {dayjs(item.time).format("YYYY-MM-DD HH:mm")}
-                      </span>
+              </TableHeader>
+              <TableBody>
+                {!hasVariableFilter ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={3}
+                      className="py-6 text-center text-dark-5 dark:text-dark-6"
+                    >
+                      Selecione uma variavel para pesquisar.
                     </TableCell>
                   </TableRow>
-                );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+                ) : filteredHistory.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={3}
+                      className="py-6 text-center text-dark-5 dark:text-dark-6"
+                    >
+                      Nenhum dado encontrado para o periodo.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredHistory.map((item) => {
+                    const isMax = stats?.maxItem.id === item.id;
+                    const isMin = stats?.minItem.id === item.id;
+                    const highlightClass =
+                      isMax && isMin
+                        ? "bg-[#EAF6FF] dark:bg-[#1D2B3A]/70"
+                        : isMax
+                          ? "bg-[#E7F7EE] dark:bg-[#153326]/70"
+                          : isMin
+                            ? "bg-[#FDECEC] dark:bg-[#3A1B1B]/70"
+                            : "";
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
-          <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
-            Maior valor
-          </p>
-          <p className="mt-2 text-xl font-bold text-dark dark:text-white">
-            {stats
-              ? formatValue(stats.maxItem.value, stats.unit)
-              : "--"}
-          </p>
-          <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
-            Data:{" "}
-            {stats
-              ? dayjs(stats.maxItem.time).format("YYYY-MM-DD HH:mm")
-              : "--"}
-          </p>
+                    return (
+                    <TableRow
+                      key={item.id}
+                      className={cn(
+                        "border-[#eee] dark:border-dark-3",
+                        highlightClass,
+                      )}
+                    >
+                      <TableCell>
+                        <span className="font-medium text-dark dark:text-white">
+                          {item.variableName}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-dark dark:text-white">
+                          {item.value} {item.unit}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-dark dark:text-white">
+                          {dayjs(item.time).format("YYYY-MM-DD HH:mm")}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
-        <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
-          <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
-            Menor valor
-          </p>
-          <p className="mt-2 text-xl font-bold text-dark dark:text-white">
-            {stats
-              ? formatValue(stats.minItem.value, stats.unit)
-              : "--"}
-          </p>
-          <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
-            Data:{" "}
-            {stats
-              ? dayjs(stats.minItem.time).format("YYYY-MM-DD HH:mm")
-              : "--"}
-          </p>
-        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
+            <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
+              Maior valor
+            </p>
+            <p className="mt-2 text-xl font-bold text-dark dark:text-white">
+              {stats
+                ? formatValue(stats.maxItem.value, stats.unit)
+                : "--"}
+            </p>
+            <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
+              Data:{" "}
+              {stats
+                ? dayjs(stats.maxItem.time).format("YYYY-MM-DD HH:mm")
+                : "--"}
+            </p>
+          </div>
 
-        <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
-          <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
-            Total acumulado
-          </p>
-          <p className="mt-2 text-xl font-bold text-dark dark:text-white">
-            {stats ? formatValue(stats.sum, stats.unit) : "--"}
-          </p>
-          <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
-            Periodo selecionado
-          </p>
-        </div>
+          <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
+            <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
+              Menor valor
+            </p>
+            <p className="mt-2 text-xl font-bold text-dark dark:text-white">
+              {stats
+                ? formatValue(stats.minItem.value, stats.unit)
+                : "--"}
+            </p>
+            <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
+              Data:{" "}
+              {stats
+                ? dayjs(stats.minItem.time).format("YYYY-MM-DD HH:mm")
+                : "--"}
+            </p>
+          </div>
 
-        <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
-          <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
-            Media
-          </p>
-          <p className="mt-2 text-xl font-bold text-dark dark:text-white">
-            {stats ? formatValue(stats.avg, stats.unit) : "--"}
-          </p>
-          <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
-            Periodo selecionado
-          </p>
+          <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
+            <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
+              Total acumulado
+            </p>
+            <p className="mt-2 text-xl font-bold text-dark dark:text-white">
+              {stats ? formatValue(stats.sum, stats.unit) : "--"}
+            </p>
+            <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
+              Periodo selecionado
+            </p>
+          </div>
+
+          <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
+            <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
+              Media
+            </p>
+            <p className="mt-2 text-xl font-bold text-dark dark:text-white">
+              {stats ? formatValue(stats.avg, stats.unit) : "--"}
+            </p>
+            <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
+              Periodo selecionado
+            </p>
+          </div>
         </div>
       </div>
     </HistoricoContainer>
