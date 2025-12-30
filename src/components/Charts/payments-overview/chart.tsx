@@ -98,6 +98,10 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
       axisTicks: {
         show: false,
       },
+      labels: {
+        rotate: -45,
+        rotateAlways: true,
+      },
     },
   };
 

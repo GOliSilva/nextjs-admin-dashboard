@@ -104,15 +104,19 @@ export function HistoricoView() {
   };
 
   const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Enter" || suggestions.length === 0) {
+    if (event.key !== "Enter") {
       return;
     }
 
-    event.preventDefault();
-    const selected = suggestions[0];
-    setSearchTerm(selected);
-    setIsSuggestionsOpen(false);
-    applyFilters(selected);
+    (event.target as HTMLElement | null)?.blur();
+
+    if (suggestions.length > 0) {
+      event.preventDefault();
+      const selected = suggestions[0];
+      setSearchTerm(selected);
+      setIsSuggestionsOpen(false);
+      applyFilters(selected);
+    }
   };
 
   const filteredHistory = useMemo(() => {
@@ -173,11 +177,7 @@ export function HistoricoView() {
       >
         <div
           className="relative xl:col-span-2"
-          onFocus={() => {
-            if (searchTerm.trim().length > 0) {
-              setIsSuggestionsOpen(true);
-            }
-          }}
+          onFocus={() => setIsSuggestionsOpen(true)}
           onBlur={() => setIsSuggestionsOpen(false)}
           onKeyDown={handleSearchKeyDown}
         >
@@ -199,9 +199,14 @@ export function HistoricoView() {
                     <button
                       type="button"
                       onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
+                      onClick={(event) => {
                         setSearchTerm(name);
                         setIsSuggestionsOpen(false);
+                        applyFilters(name);
+                        (event.currentTarget as HTMLElement)
+                          .closest("form")
+                          ?.querySelector<HTMLInputElement>("input[type='search']")
+                          ?.blur();
                       }}
                       className={cn(
                         "w-full px-4 py-2 text-left text-dark hover:bg-gray-100 dark:text-white dark:hover:bg-dark-2",
