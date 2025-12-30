@@ -65,7 +65,7 @@ export function AlarmsTable() {
   const suggestions = useMemo(() => {
     const normalizedQuery = searchTerm.trim().toLowerCase();
     if (!normalizedQuery) {
-      return [];
+      return variableOptions.slice(0, 6);
     }
 
     return variableOptions
@@ -85,6 +85,8 @@ export function AlarmsTable() {
     if (event.key !== "Enter") {
       return;
     }
+
+    (event.target as HTMLElement | null)?.blur();
 
     if (suggestions.length > 0) {
       event.preventDefault();
@@ -126,11 +128,8 @@ export function AlarmsTable() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div
           className="relative"
-          onFocus={() => {
-            if (searchTerm.trim().length > 0) {
-              setIsSuggestionsOpen(true);
-            }
-          }}
+          data-search-container
+          onFocus={() => setIsSuggestionsOpen(true)}
           onBlur={() => setIsSuggestionsOpen(false)}
           onKeyDown={handleSearchKeyDown}
         >
@@ -152,9 +151,13 @@ export function AlarmsTable() {
                     <button
                       type="button"
                       onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
+                      onClick={(event) => {
                         setSearchTerm(name);
                         setIsSuggestionsOpen(false);
+                        (event.currentTarget as HTMLElement)
+                          .closest("[data-search-container]")
+                          ?.querySelector<HTMLInputElement>("input[type='search']")
+                          ?.blur();
                       }}
                       className={cn(
                         "w-full px-4 py-2 text-left text-dark hover:bg-gray-100 dark:text-white dark:hover:bg-dark-2",
