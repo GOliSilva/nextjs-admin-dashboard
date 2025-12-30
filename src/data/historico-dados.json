@@ -1,0 +1,177 @@
+[
+  {
+    "id": 1,
+    "variableName": "corrente",
+    "value": 0.85,
+    "unit": "A",
+    "time": "2025-01-01T08:00:00Z"
+  },
+  {
+    "id": 2,
+    "variableName": "tensao",
+    "value": 218,
+    "unit": "V",
+    "time": "2025-01-01T08:00:00Z"
+  },
+  {
+    "id": 3,
+    "variableName": "fator_potencia",
+    "value": 0.93,
+    "unit": "",
+    "time": "2025-01-01T08:00:00Z"
+  },
+  {
+    "id": 4,
+    "variableName": "correnteNeutro",
+    "value": 10.8,
+    "unit": "A",
+    "time": "2025-01-01T08:00:00Z"
+  },
+  {
+    "id": 5,
+    "variableName": "Temperatura",
+    "value": 36.5,
+    "unit": "C",
+    "time": "2025-01-01T08:00:00Z"
+  },
+  {
+    "id": 6,
+    "variableName": "corrente",
+    "value": 0.92,
+    "unit": "A",
+    "time": "2025-01-03T08:00:00Z"
+  },
+  {
+    "id": 7,
+    "variableName": "tensao",
+    "value": 222,
+    "unit": "V",
+    "time": "2025-01-03T08:00:00Z"
+  },
+  {
+    "id": 8,
+    "variableName": "fator_potencia",
+    "value": 0.95,
+    "unit": "",
+    "time": "2025-01-03T08:00:00Z"
+  },
+  {
+    "id": 9,
+    "variableName": "correnteNeutro",
+    "value": 11.4,
+    "unit": "A",
+    "time": "2025-01-03T08:00:00Z"
+  },
+  {
+    "id": 10,
+    "variableName": "Temperatura",
+    "value": 36.9,
+    "unit": "C",
+    "time": "2025-01-03T08:00:00Z"
+  },
+  {
+    "id": 11,
+    "variableName": "corrente",
+    "value": 1.05,
+    "unit": "A",
+    "time": "2025-01-05T08:00:00Z"
+  },
+  {
+    "id": 12,
+    "variableName": "tensao",
+    "value": 225,
+    "unit": "V",
+    "time": "2025-01-05T08:00:00Z"
+  },
+  {
+    "id": 13,
+    "variableName": "fator_potencia",
+    "value": 0.96,
+    "unit": "",
+    "time": "2025-01-05T08:00:00Z"
+  },
+  {
+    "id": 14,
+    "variableName": "correnteNeutro",
+    "value": 12.1,
+    "unit": "A",
+    "time": "2025-01-05T08:00:00Z"
+  },
+  {
+    "id": 15,
+    "variableName": "Temperatura",
+    "value": 37.2,
+    "unit": "C",
+    "time": "2025-01-05T08:00:00Z"
+  },
+  {
+    "id": 16,
+    "variableName": "corrente",
+    "value": 0.97,
+    "unit": "A",
+    "time": "2025-01-07T08:00:00Z"
+  },
+  {
+    "id": 17,
+    "variableName": "tensao",
+    "value": 221,
+    "unit": "V",
+    "time": "2025-01-07T08:00:00Z"
+  },
+  {
+    "id": 18,
+    "variableName": "fator_potencia",
+    "value": 0.94,
+    "unit": "",
+    "time": "2025-01-07T08:00:00Z"
+  },
+  {
+    "id": 19,
+    "variableName": "correnteNeutro",
+    "value": 11.6,
+    "unit": "A",
+    "time": "2025-01-07T08:00:00Z"
+  },
+  {
+    "id": 20,
+    "variableName": "Temperatura",
+    "value": 36.8,
+    "unit": "C",
+    "time": "2025-01-07T08:00:00Z"
+  },
+  {
+    "id": 21,
+    "variableName": "corrente",
+    "value": 1.12,
+    "unit": "A",
+    "time": "2025-01-09T08:00:00Z"
+  },
+  {
+    "id": 22,
+    "variableName": "tensao",
+    "value": 228,
+    "unit": "V",
+    "time": "2025-01-09T08:00:00Z"
+  },
+  {
+    "id": 23,
+    "variableName": "fator_potencia",
+    "value": 0.92,
+    "unit": "",
+    "time": "2025-01-09T08:00:00Z"
+  },
+  {
+    "id": 24,
+    "variableName": "correnteNeutro",
+    "value": 12.7,
+    "unit": "A",
+    "time": "2025-01-09T08:00:00Z"
+  },
+  {
+    "id": 25,
+    "variableName": "Temperatura",
+    "value": 37.6,
+    "unit": "C",
+    "time": "2025-01-09T08:00:00Z"
+  }
+]

@@ -1,0 +1,37 @@
+[
+  {
+    "id": 5,
+    "variableName": "Temperatura",
+    "value": 36.5,
+    "unit": "C",
+    "time": "2025-01-01T08:00:00Z"
+  },
+  {
+    "id": 10,
+    "variableName": "Temperatura",
+    "value": 36.9,
+    "unit": "C",
+    "time": "2025-01-03T08:00:00Z"
+  },
+  {
+    "id": 15,
+    "variableName": "Temperatura",
+    "value": 37.2,
+    "unit": "C",
+    "time": "2025-01-05T08:00:00Z"
+  },
+  {
+    "id": 20,
+    "variableName": "Temperatura",
+    "value": 36.8,
+    "unit": "C",
+    "time": "2025-01-07T08:00:00Z"
+  },
+  {
+    "id": 25,
+    "variableName": "Temperatura",
+    "value": 37.6,
+    "unit": "C",
+    "time": "2025-01-09T08:00:00Z"
+  }
+]

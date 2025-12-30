@@ -1,0 +1,219 @@
+[
+  {
+    "id": 2,
+    "variableName": "tensao",
+    "value": 218,
+    "unit": "V",
+    "time": "2025-01-01T08:00:00Z"
+  },
+  {
+    "id": 7,
+    "variableName": "tensao",
+    "value": 222,
+    "unit": "V",
+    "time": "2025-01-03T08:00:00Z"
+  },
+  {
+    "id": 12,
+    "variableName": "tensao",
+    "value": 225,
+    "unit": "V",
+    "time": "2025-01-05T08:00:00Z"
+  },
+  {
+    "id": 17,
+    "variableName": "tensao",
+    "value": 221,
+    "unit": "V",
+    "time": "2025-01-07T08:00:00Z"
+  },
+  {
+    "id": 22,
+    "variableName": "tensao",
+    "value": 228,
+    "unit": "V",
+    "time": "2025-01-09T08:00:00Z"
+  },
+  {
+    "id": 27,
+    "variableName": "tensao",
+    "value": 230,
+    "unit": "V",
+    "time": "2025-01-11T08:00:00Z"
+  },
+  {
+    "id": 32,
+    "variableName": "tensao",
+    "value": 227,
+    "unit": "V",
+    "time": "2025-01-13T08:00:00Z"
+  },
+  {
+    "id": 37,
+    "variableName": "tensao",
+    "value": 233,
+    "unit": "V",
+    "time": "2025-01-15T08:00:00Z"
+  },
+  {
+    "id": 42,
+    "variableName": "tensao",
+    "value": 234,
+    "unit": "V",
+    "time": "2025-01-17T08:00:00Z"
+  },
+  {
+    "id": 47,
+    "variableName": "tensao",
+    "value": 236,
+    "unit": "V",
+    "time": "2025-01-19T08:00:00Z"
+  },
+  {
+    "id": 52,
+    "variableName": "tensao",
+    "value": 239,
+    "unit": "V",
+    "time": "2025-01-21T08:00:00Z"
+  },
+  {
+    "id": 57,
+    "variableName": "tensao",
+    "value": 241,
+    "unit": "V",
+    "time": "2025-01-23T08:00:00Z"
+  },
+  {
+    "id": 62,
+    "variableName": "tensao",
+    "value": 245,
+    "unit": "V",
+    "time": "2025-01-25T08:00:00Z"
+  },
+  {
+    "id": 67,
+    "variableName": "tensao",
+    "value": 248,
+    "unit": "V",
+    "time": "2025-01-27T08:00:00Z"
+  },
+  {
+    "id": 72,
+    "variableName": "tensao",
+    "value": 250,
+    "unit": "V",
+    "time": "2025-01-29T08:00:00Z"
+  },
+  {
+    "id": 77,
+    "variableName": "tensao",
+    "value": 253,
+    "unit": "V",
+    "time": "2025-01-31T08:00:00Z"
+  },
+  {
+    "id": 82,
+    "variableName": "tensao",
+    "value": 256,
+    "unit": "V",
+    "time": "2025-02-02T08:00:00Z"
+  },
+  {
+    "id": 87,
+    "variableName": "tensao",
+    "value": 258,
+    "unit": "V",
+    "time": "2025-02-04T08:00:00Z"
+  },
+  {
+    "id": 92,
+    "variableName": "tensao",
+    "value": 260,
+    "unit": "V",
+    "time": "2025-02-06T08:00:00Z"
+  },
+  {
+    "id": 97,
+    "variableName": "tensao",
+    "value": 263,
+    "unit": "V",
+    "time": "2025-02-08T08:00:00Z"
+  },
+  {
+    "id": 102,
+    "variableName": "tensao",
+    "value": 265,
+    "unit": "V",
+    "time": "2025-02-10T08:00:00Z"
+  },
+  {
+    "id": 107,
+    "variableName": "tensao",
+    "value": 268,
+    "unit": "V",
+    "time": "2025-02-12T08:00:00Z"
+  },
+  {
+    "id": 112,
+    "variableName": "tensao",
+    "value": 270,
+    "unit": "V",
+    "time": "2025-02-14T08:00:00Z"
+  },
+  {
+    "id": 117,
+    "variableName": "tensao",
+    "value": 272,
+    "unit": "V",
+    "time": "2025-02-16T08:00:00Z"
+  },
+  {
+    "id": 122,
+    "variableName": "tensao",
+    "value": 275,
+    "unit": "V",
+    "time": "2025-02-18T08:00:00Z"
+  },
+  {
+    "id": 127,
+    "variableName": "tensao",
+    "value": 277,
+    "unit": "V",
+    "time": "2025-02-20T08:00:00Z"
+  },
+  {
+    "id": 132,
+    "variableName": "tensao",
+    "value": 280,
+    "unit": "V",
+    "time": "2025-02-22T08:00:00Z"
+  },
+  {
+    "id": 137,
+    "variableName": "tensao",
+    "value": 282,
+    "unit": "V",
+    "time": "2025-02-24T08:00:00Z"
+  },
+  {
+    "id": 142,
+    "variableName": "tensao",
+    "value": 285,
+    "unit": "V",
+    "time": "2025-02-26T08:00:00Z"
+  },
+  {
+    "id": 147,
+    "variableName": "tensao",
+    "value": 287,
+    "unit": "V",
+    "time": "2025-02-28T08:00:00Z"
+  },
+  {
+    "id": 152,
+    "variableName": "tensao",
+    "value": 290,
+    "unit": "V",
+    "time": "2025-03-02T08:00:00Z"
+  }
+]

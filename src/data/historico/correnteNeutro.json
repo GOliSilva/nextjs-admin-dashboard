@@ -1,0 +1,37 @@
+[
+  {
+    "id": 4,
+    "variableName": "correnteNeutro",
+    "value": 10.8,
+    "unit": "A",
+    "time": "2025-01-01T08:00:00Z"
+  },
+  {
+    "id": 9,
+    "variableName": "correnteNeutro",
+    "value": 11.4,
+    "unit": "A",
+    "time": "2025-01-03T08:00:00Z"
+  },
+  {
+    "id": 14,
+    "variableName": "correnteNeutro",
+    "value": 12.1,
+    "unit": "A",
+    "time": "2025-01-05T08:00:00Z"
+  },
+  {
+    "id": 19,
+    "variableName": "correnteNeutro",
+    "value": 11.6,
+    "unit": "A",
+    "time": "2025-01-07T08:00:00Z"
+  },
+  {
+    "id": 24,
+    "variableName": "correnteNeutro",
+    "value": 12.7,
+    "unit": "A",
+    "time": "2025-01-09T08:00:00Z"
+  }
+]

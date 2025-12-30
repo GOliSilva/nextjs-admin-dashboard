@@ -29,6 +29,10 @@ export const NAV_DATA = [
             url: "/alarms",
           },
           {
+            title: "Historico",
+            url: "/historico",
+          },
+          {
             title: "Informações adicionais",
             url: "/informacoes-adicionais",
           },

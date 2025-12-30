@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "variableName": "corrente",
+    "value": 0.85,
+    "unit": "A",
+    "time": "2025-01-01T08:00:00Z"
+  },
+  {
+    "id": 6,
+    "variableName": "corrente",
+    "value": 0.92,
+    "unit": "A",
+    "time": "2025-01-03T08:00:00Z"
+  },
+  {
+    "id": 11,
+    "variableName": "corrente",
+    "value": 1.05,
+    "unit": "A",
+    "time": "2025-01-05T08:00:00Z"
+  },
+  {
+    "id": 16,
+    "variableName": "corrente",
+    "value": 0.97,
+    "unit": "A",
+    "time": "2025-01-07T08:00:00Z"
+  },
+  {
+    "id": 21,
+    "variableName": "corrente",
+    "value": 1.12,
+    "unit": "A",
+    "time": "2025-01-09T08:00:00Z"
+  }
+]
