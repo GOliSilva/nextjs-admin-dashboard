@@ -1,4 +1,3 @@
-import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { AlarmsTable } from "@/components/Tables/alarms-table";
 import { Metadata } from "next";
 
@@ -9,7 +8,6 @@ export const metadata: Metadata = {
 const AlarmsPage = () => {
   return (
     <>
-      <Breadcrumb pageName="Alarmes" />
       <AlarmsTable />
     </>
   );

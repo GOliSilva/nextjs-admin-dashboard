@@ -17,6 +17,7 @@ import fatorPotenciaData from "@/data/historico/fator_potencia.json";
 import temperaturaData from "@/data/historico/temperatura.json";
 import tensaoData from "@/data/historico/tensao.json";
 import historicoVariaveis from "@/data/historico-variaveis.json";
+import { HistoricoContainer } from "./historico-container";
 import { cn } from "@/lib/utils";
 import dayjs from "dayjs";
 import { useMemo, useState } from "react";
@@ -53,7 +54,6 @@ const historicoData: HistoricoItem[] = [
   ...(correnteNeutroData as HistoricoItem[]),
   ...(temperaturaData as HistoricoItem[]),
 ];
-
 export function HistoricoView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [startDateInput, setStartDateInput] = useState("");
@@ -169,12 +169,50 @@ export function HistoricoView() {
     }));
   }, [filteredHistory]);
 
+  const stats = useMemo(() => {
+    if (!hasVariableFilter || filteredHistory.length === 0) {
+      return null;
+    }
+
+    const [first] = filteredHistory;
+    let maxItem = first;
+    let minItem = first;
+    let sum = 0;
+
+    filteredHistory.forEach((item) => {
+      sum += item.value;
+      if (item.value > maxItem.value) {
+        maxItem = item;
+      }
+      if (item.value < minItem.value) {
+        minItem = item;
+      }
+    });
+
+    return {
+      maxItem,
+      minItem,
+      sum,
+      avg: sum / filteredHistory.length,
+      unit: first.unit,
+    };
+  }, [filteredHistory, hasVariableFilter]);
+
+  const formatValue = (value: number, unit: string) => {
+    const formatted = value.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return unit ? `${formatted} ${unit}` : formatted;
+  };
+
   return (
-    <div className="space-y-6">
-      <form
-        onSubmit={handleSubmit}
-        className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5"
-      >
+    <HistoricoContainer>
+      <div className="border-b border-stroke pb-6 dark:border-dark-3">
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5"
+        >
         <div
           className="relative xl:col-span-2"
           onFocus={() => setIsSuggestionsOpen(true)}
@@ -247,10 +285,11 @@ export function HistoricoView() {
             Pesquisar
           </button>
         </div>
-      </form>
+        </form>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <div className="rounded-[10px] border border-stroke bg-white p-4 shadow-1 dark:border-dark-3 dark:bg-gray-dark dark:shadow-card sm:p-6">
+        <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60 sm:p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold text-dark dark:text-white">
               Grafico do periodo
@@ -270,14 +309,14 @@ export function HistoricoView() {
           )}
         </div>
 
-        <div className="rounded-[10px] border border-stroke bg-white p-4 shadow-1 dark:border-dark-3 dark:bg-gray-dark dark:shadow-card sm:p-6">
+        <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60 sm:p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold text-dark dark:text-white">
               Tabela do periodo
             </h2>
           </div>
 
-          <Table wrapperClassName="max-h-[420px] overflow-y-auto">
+          <Table wrapperClassName="max-h-[300px] overflow-y-auto">
             <TableHeader>
               <TableRow className="border-none [&>th]:py-3 [&>th]:text-sm [&>th]:font-medium [&>th]:text-dark [&>th]:dark:text-white">
                 <TableHead className="sticky top-0 z-10 min-w-[160px] bg-[#F7F9FC] dark:bg-dark-2">
@@ -338,6 +377,66 @@ export function HistoricoView() {
           </Table>
         </div>
       </div>
-    </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
+          <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
+            Maior valor
+          </p>
+          <p className="mt-2 text-xl font-bold text-dark dark:text-white">
+            {stats
+              ? formatValue(stats.maxItem.value, stats.unit)
+              : "--"}
+          </p>
+          <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
+            Data:{" "}
+            {stats
+              ? dayjs(stats.maxItem.time).format("YYYY-MM-DD HH:mm")
+              : "--"}
+          </p>
+        </div>
+
+        <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
+          <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
+            Menor valor
+          </p>
+          <p className="mt-2 text-xl font-bold text-dark dark:text-white">
+            {stats
+              ? formatValue(stats.minItem.value, stats.unit)
+              : "--"}
+          </p>
+          <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
+            Data:{" "}
+            {stats
+              ? dayjs(stats.minItem.time).format("YYYY-MM-DD HH:mm")
+              : "--"}
+          </p>
+        </div>
+
+        <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
+          <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
+            Total acumulado
+          </p>
+          <p className="mt-2 text-xl font-bold text-dark dark:text-white">
+            {stats ? formatValue(stats.sum, stats.unit) : "--"}
+          </p>
+          <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
+            Periodo selecionado
+          </p>
+        </div>
+
+        <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
+          <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
+            Media
+          </p>
+          <p className="mt-2 text-xl font-bold text-dark dark:text-white">
+            {stats ? formatValue(stats.avg, stats.unit) : "--"}
+          </p>
+          <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
+            Periodo selecionado
+          </p>
+        </div>
+      </div>
+    </HistoricoContainer>
   );
 }

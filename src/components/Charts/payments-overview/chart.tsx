@@ -107,12 +107,7 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
 
   return (
     <div className="-ml-4 -mr-5 h-[310px]">
-      <Chart
-        options={options}
-        series={series}
-        type="area"
-        height={310}
-      />
+      <Chart options={options} series={series} type="area" height={310} />
     </div>
   );
 }
