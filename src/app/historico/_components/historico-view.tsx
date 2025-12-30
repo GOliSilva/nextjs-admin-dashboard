@@ -350,10 +350,25 @@ export function HistoricoView() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredHistory.map((item) => (
+                filteredHistory.map((item) => {
+                  const isMax = stats?.maxItem.id === item.id;
+                  const isMin = stats?.minItem.id === item.id;
+                  const highlightClass =
+                    isMax && isMin
+                      ? "bg-[#EAF6FF] dark:bg-[#1D2B3A]/70"
+                      : isMax
+                        ? "bg-[#E7F7EE] dark:bg-[#153326]/70"
+                        : isMin
+                          ? "bg-[#FDECEC] dark:bg-[#3A1B1B]/70"
+                          : "";
+
+                  return (
                   <TableRow
                     key={item.id}
-                    className="border-[#eee] dark:border-dark-3"
+                    className={cn(
+                      "border-[#eee] dark:border-dark-3",
+                      highlightClass,
+                    )}
                   >
                     <TableCell>
                       <span className="font-medium text-dark dark:text-white">
@@ -371,7 +386,8 @@ export function HistoricoView() {
                       </span>
                     </TableCell>
                   </TableRow>
-                ))
+                );
+                })
               )}
             </TableBody>
           </Table>
