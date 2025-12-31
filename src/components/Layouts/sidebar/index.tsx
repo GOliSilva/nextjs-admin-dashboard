@@ -3,7 +3,7 @@
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NAV_DATA } from "./data";
 import { ArrowLeftIcon, ChevronUp } from "./icons";
@@ -12,6 +12,7 @@ import { useSidebarContext } from "./sidebar-context";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
@@ -84,23 +85,43 @@ export function Sidebar() {
 
           {/* Navigation */}
           <div className="custom-scrollbar mt-6 flex-1 overflow-y-auto pr-3 min-[850px]:mt-10">
-            {NAV_DATA.map((section) => (
-              <div key={section.label} className="mb-6">
-                <h2 className="mb-5 text-sm font-medium text-dark-4 dark:text-dark-6">
-                  {section.label}
-                </h2>
+            {NAV_DATA.map((section, index) => {
+              const sectionLabel = section.label.trim();
 
-                <nav role="navigation" aria-label={section.label}>
+              return (
+                <div
+                  key={sectionLabel || `section-${index}`}
+                  className="mb-6"
+                >
+                  {sectionLabel ? (
+                    <h2 className="mb-5 text-sm font-medium text-dark-4 dark:text-dark-6">
+                      {sectionLabel}
+                    </h2>
+                  ) : null}
+
+                  <nav
+                    role="navigation"
+                    aria-label={sectionLabel || "Navigation"}
+                  >
                   <ul className="space-y-2">
                     {section.items.map((item) => (
                       <li key={item.title}>
                         {item.items.length ? (
                           <div>
                             <MenuItem
-                              isActive={item.items.some(
-                                ({ url }) => url === pathname,
-                              )}
-                              onClick={() => toggleExpanded(item.title)}
+                              isActive={
+                                item.items.some(({ url }) => url === pathname) ||
+                                ("url" in item && item.url === pathname)
+                              }
+                              onClick={() => {
+                                toggleExpanded(item.title);
+                                if ("url" in item) {
+                                  router.push(item.url);
+                                  if (isMobile) {
+                                    toggleSidebar();
+                                  }
+                                }
+                              }}
                             >
                               <item.icon
                                 className="size-6 shrink-0"
@@ -166,9 +187,10 @@ export function Sidebar() {
                       </li>
                     ))}
                   </ul>
-                </nav>
-              </div>
-            ))}
+                  </nav>
+                </div>
+              );
+            })}
           </div>
         </div>
       </aside>

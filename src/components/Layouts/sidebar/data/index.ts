@@ -1,142 +1,66 @@
-import * as Icons from "../icons";
+﻿import * as Icons from "../icons";
 
 export const NAV_DATA = [
   {
-    label: "MAIN MENU",
+    label: "",
     items: [
       {
-        title: "Dashboard",
+        title: "Visão geral",
+        url: "/",
         icon: Icons.HomeIcon,
+        description: "Resumo geral do sistema.",
+        items: [],
+      },
+      {
+        title: "Trifásico",
+        url: "/trifasico",
+        icon: Icons.Alphabet,
+        description: "Visão consolidada das três fases.",
         items: [
-          {
-            title: "Visão geral",
-            url: "/",
-          },
           {
             title: "Fase A",
             url: "/fase-a",
+            description: "Detalhes e indicadores da fase A.",
           },
           {
             title: "Fase B",
             url: "/fase-b",
+            description: "Detalhes e indicadores da fase B.",
           },
           {
             title: "Fase C",
             url: "/fase-c",
-          },
-          {
-            title: "Trifasico",
-            url: "/trifasico",
-          },
-          {
-            title: "Alarms",
-            url: "/alarms",
-          },
-          {
-            title: "Historico",
-            url: "/historico",
-          },
-          {
-            title: "Graficos",
-            url: "/graficos",
-          },
-          {
-            title: "Informações adicionais",
-            url: "/informacoes-adicionais",
+            description: "Detalhes e indicadores da fase C.",
           },
         ],
       },
       {
-        title: "Calendar",
-        url: "/calendar",
-        icon: Icons.Calendar,
-        items: [],
-      },
-      {
-        title: "Profile",
-        url: "/profile",
-        icon: Icons.User,
-        items: [],
-      },
-      {
-        title: "Forms",
-        icon: Icons.Alphabet,
-        items: [
-          {
-            title: "Form Elements",
-            url: "/forms/form-elements",
-          },
-          {
-            title: "Form Layout",
-            url: "/forms/form-layout",
-          },
-        ],
-      },
-      {
-        title: "Tables",
-        url: "/tables",
-        icon: Icons.Table,
-        items: [
-          {
-            title: "Tables",
-            url: "/tables",
-          },
-        ],
-      },
-      {
-        title: "Alarms",
+        title: "Alarmes",
         url: "/alarms",
         icon: Icons.Table,
+        description: "Lista e status dos alarmes.",
         items: [],
       },
       {
-        title: "Pages",
-        icon: Icons.Alphabet,
-        items: [
-          {
-            title: "Settings",
-            url: "/pages/settings",
-          },
-        ],
+        title: "Histórico",
+        url: "/historico",
+        icon: Icons.Table,
+        description: "Registros e eventos anteriores.",
+        items: [],
       },
-    ],
-  },
-  {
-    label: "OTHERS",
-    items: [
       {
-        title: "Charts",
+        title: "Gráficos",
+        url: "/graficos",
         icon: Icons.PieChart,
-        items: [
-          {
-            title: "Basic Chart",
-            url: "/charts/basic-chart",
-          },
-        ],
+        description: "Tendências e comparativos em gráficos.",
+        items: [],
       },
       {
-        title: "UI Elements",
+        title: "Informações adicionais",
+        url: "/informacoes-adicionais",
         icon: Icons.FourCircle,
-        items: [
-          {
-            title: "Alerts",
-            url: "/ui-elements/alerts",
-          },
-          {
-            title: "Buttons",
-            url: "/ui-elements/buttons",
-          },
-        ],
-      },
-      {
-        title: "Authentication",
-        icon: Icons.Authentication,
-        items: [
-          {
-            title: "Sign In",
-            url: "/auth/sign-in",
-          },
-        ],
+        description: "Dados complementares do sistema.",
+        items: [],
       },
     ],
   },
