@@ -115,7 +115,7 @@ export function Sidebar() {
                               }
                               onClick={() => {
                                 toggleExpanded(item.title);
-                                if ("url" in item) {
+                                if (item.url) {
                                   router.push(item.url);
                                   if (isMobile) {
                                     toggleSidebar();

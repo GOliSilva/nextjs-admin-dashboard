@@ -1,21 +1,42 @@
-﻿import * as Icons from "../icons";
+import * as Icons from "../icons";
 
-export const NAV_DATA = [
+type IconType = (props: Icons.PropsType) => JSX.Element;
+
+type NavSubItem = {
+  title: string;
+  url: string;
+  description?: string;
+};
+
+type NavItem = {
+  title: string;
+  url?: string;
+  icon: IconType;
+  description?: string;
+  items: NavSubItem[];
+};
+
+type NavSection = {
+  label: string;
+  items: NavItem[];
+};
+
+export const NAV_DATA: NavSection[] = [
   {
     label: "",
     items: [
       {
-        title: "Visão geral",
+        title: "Vis\u00e3o geral",
         url: "/",
         icon: Icons.HomeIcon,
         description: "Resumo geral do sistema.",
         items: [],
       },
       {
-        title: "Trifásico",
+        title: "Trif\u00e1sico",
         url: "/trifasico",
         icon: Icons.Alphabet,
-        description: "Visão consolidada das três fases.",
+        description: "Vis\u00e3o consolidada das tr\u00eas fases.",
         items: [
           {
             title: "Fase A",
@@ -42,21 +63,21 @@ export const NAV_DATA = [
         items: [],
       },
       {
-        title: "Histórico",
+        title: "Hist\u00f3rico",
         url: "/historico",
         icon: Icons.Table,
         description: "Registros e eventos anteriores.",
         items: [],
       },
       {
-        title: "Gráficos",
+        title: "Gr\u00e1ficos",
         url: "/graficos",
         icon: Icons.PieChart,
-        description: "Tendências e comparativos em gráficos.",
+        description: "Tend\u00eancias e comparativos em gr\u00e1ficos.",
         items: [],
       },
       {
-        title: "Informações adicionais",
+        title: "Informa\u00e7\u00f5es adicionais",
         url: "/informacoes-adicionais",
         icon: Icons.FourCircle,
         description: "Dados complementares do sistema.",
