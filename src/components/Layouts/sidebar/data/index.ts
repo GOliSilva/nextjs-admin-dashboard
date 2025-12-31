@@ -25,12 +25,20 @@ export const NAV_DATA = [
             url: "/fase-c",
           },
           {
+            title: "Trifasico",
+            url: "/trifasico",
+          },
+          {
             title: "Alarms",
             url: "/alarms",
           },
           {
             title: "Historico",
             url: "/historico",
+          },
+          {
+            title: "Graficos",
+            url: "/graficos",
           },
           {
             title: "Informações adicionais",

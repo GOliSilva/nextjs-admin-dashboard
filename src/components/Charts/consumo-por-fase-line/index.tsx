@@ -22,7 +22,7 @@ export async function ConsumoPorFaseLine({
 
   const summaryItems = series.map((item) => ({
     label: item.name,
-    value: standardFormat(item.data.reduce((acc, point) => acc + point.y, 0)),
+    value: `${standardFormat(item.data.reduce((acc, point) => acc + point.y, 0))} kWh`,
   }));
 
   return (

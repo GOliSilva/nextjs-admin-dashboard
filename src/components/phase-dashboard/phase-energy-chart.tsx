@@ -5,15 +5,26 @@ import { EnergyChart } from "@/app/fase-a/_components/energy-chart"; // Reuse th
 
 type PropsType = {
     phase: PhaseType;
+    phases?: PhaseType[];
     energyType?: string; // "ponta" | "nao_ponta"
     className?: string;
 };
 
-export async function PhaseEnergyChart({ phase, energyType, className }: PropsType) {
+export async function PhaseEnergyChart({ phase, phases, energyType, className }: PropsType) {
     // Default to "ponta" if undefined
     const resolvedType = (energyType === "nao_ponta" ? "nao_ponta" : "ponta") as "ponta" | "nao_ponta";
 
-    const { categories, anoAtual, anoAnterior } = getEnergiaData(phase, resolvedType);
+    const phasesToUse = phases && phases.length > 0 ? phases : [phase];
+    const energiaPorFase = phasesToUse.map((phaseKey) => getEnergiaData(phaseKey, resolvedType));
+    const { categories } = energiaPorFase[0];
+
+    const sumSeries = (seriesKey: "anoAtual" | "anoAnterior") =>
+        energiaPorFase[0][seriesKey].map((_, index) =>
+            energiaPorFase.reduce((total, faseData) => total + faseData[seriesKey][index], 0)
+        );
+
+    const anoAtual = sumSeries("anoAtual");
+    const anoAnterior = sumSeries("anoAnterior");
 
     return (
         <div

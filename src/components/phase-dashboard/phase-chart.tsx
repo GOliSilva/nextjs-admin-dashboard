@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 type PropsType = {
     phase: PhaseType;
+    phases?: PhaseType[];
     metric?: string;
     timeFrame?: string;
     className?: string;
@@ -25,6 +26,7 @@ const TIME_FRAME_MAP: Record<string, TimeFrame> = {
 
 export async function PhaseChart({
     phase,
+    phases,
     metric,
     timeFrame,
     className,
@@ -36,12 +38,21 @@ export async function PhaseChart({
     const metricKey = METRIC_MAP[resolvedMetricLabel] || "corrente";
     const timeFrameKey = TIME_FRAME_MAP[resolvedTimeFrameLabel] || "day";
 
-    const seriesData = getChartSeries(phase, metricKey, timeFrameKey);
+    const phasesToRender = phases && phases.length > 0 ? phases : [phase];
+    const series = phasesToRender.map((phaseKey) => ({
+        name: phasesToRender.length > 1 ? `Fase ${phaseKey}` : resolvedMetricLabel,
+        data: getChartSeries(phaseKey, metricKey, timeFrameKey)
+    }));
 
-    const series = [{
-        name: resolvedMetricLabel,
-        data: seriesData
-    }];
+    const phaseColors: Record<PhaseType, string> = {
+        A: "#5750F1",
+        B: "#0ABEF9",
+        C: "#F2994A",
+    };
+
+    const chartColors = phasesToRender.length > 1
+        ? phasesToRender.map((phaseKey) => phaseColors[phaseKey])
+        : ["#5750F1"];
 
     return (
         <div
@@ -70,7 +81,7 @@ export async function PhaseChart({
                 </div>
             </div>
 
-            <PaymentsOverviewChart series={series} colors={["#5750F1"]} />
+            <PaymentsOverviewChart series={series} colors={chartColors} />
         </div>
     );
 }

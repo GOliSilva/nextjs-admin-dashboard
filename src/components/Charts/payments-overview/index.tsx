@@ -105,9 +105,10 @@ export async function PaymentsOverview({
       ];
     }
 
+    const unit = "kWh";
     summaryItems = series.map((item) => ({
       label: item.name,
-      value: `${standardFormat(sumSeries(item))} W`,
+      value: `${standardFormat(sumSeries(item))} ${unit}`,
     }));
   } else {
     const data = await getPaymentsOverviewData(resolvedTimeFrame);

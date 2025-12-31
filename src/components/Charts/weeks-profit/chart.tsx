@@ -67,6 +67,16 @@ export function WeeksProfitChart({ data }: PropsType) {
         },
       },
     },
+    yaxis: {
+      labels: {
+        formatter: (val) => `${val} kWh`,
+      },
+    },
+    tooltip: {
+      y: {
+        formatter: (val) => `${val} kWh`,
+      },
+    },
 
     xaxis: {
       axisBorder: {

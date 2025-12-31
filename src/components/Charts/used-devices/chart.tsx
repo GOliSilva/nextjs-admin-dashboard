@@ -43,7 +43,7 @@ export function DonutChart({ data }: PropsType) {
             total: {
               show: true,
               showAlways: true,
-              label: "Total",
+              label: "Total (kWh)",
               fontSize: "16px",
               fontWeight: "400",
             },
@@ -51,7 +51,7 @@ export function DonutChart({ data }: PropsType) {
               show: true,
               fontSize: "28px",
               fontWeight: "bold",
-              formatter: (val) => compactFormat(+val),
+              formatter: (val) => `${compactFormat(+val)} kWh`,
             },
           },
         },
