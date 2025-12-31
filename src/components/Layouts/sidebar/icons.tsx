@@ -139,6 +139,178 @@ export function PieChart(props: PropsType) {
   );
 }
 
+export function House(props: PropsType) {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M4 11l8-6 8 6"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6 10v9h12v-9"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 19v-5h4v5"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function Gauge(props: PropsType) {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M4 16a8 8 0 1116 0"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 12l4-3"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
+      <circle
+        cx={12}
+        cy={12}
+        r={1.6}
+        stroke="currentColor"
+        strokeWidth={1.6}
+      />
+    </svg>
+  );
+}
+
+export function ChartLine(props: PropsType) {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M4 18V6"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 18h16"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
+      <path
+        d="M6 15l4-4 4 3 4-6"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function Bell(props: PropsType) {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M6 10a6 6 0 1112 0c0 2.6.9 3.6 1.6 4.3.4.4.7.7.7 1.2 0 .8-.6 1.5-1.4 1.5H4.9c-.8 0-1.4-.7-1.4-1.5 0-.5.3-.8.7-1.2C5.1 13.6 6 12.6 6 10z"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 18a2 2 0 004 0"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function Clock(props: PropsType) {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" {...props}>
+      <circle
+        cx={12}
+        cy={12}
+        r={8}
+        stroke="currentColor"
+        strokeWidth={1.6}
+      />
+      <path
+        d="M12 7v5l3 2"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function Layers(props: PropsType) {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M12 4l8 4-8 4-8-4 8-4z"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 12l8 4 8-4"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 16l8 4 8-4"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function InfoCircle(props: PropsType) {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" {...props}>
+      <circle
+        cx={12}
+        cy={12}
+        r={9}
+        stroke="currentColor"
+        strokeWidth={1.6}
+      />
+      <circle
+        cx={12}
+        cy={8}
+        r={1.2}
+        stroke="currentColor"
+        strokeWidth={1.6}
+      />
+      <path
+        d="M12 11v6"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function FourCircle(props: PropsType) {
   return (
     <svg width={24} height={24} viewBox="0 0 24 24" fill="none" {...props}>

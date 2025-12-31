@@ -1,11 +1,50 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { TrendingUpIcon } from "@/assets/icons";
 import { compactFormat } from "@/lib/format-number";
 import { cn } from "@/lib/utils";
 import { getCampaignVisitorsData } from "@/services/charts.services";
 import { CampaignVisitorsChart } from "./chart";
 
-export async function CampaignVisitors({ className }: { className?: string }) {
-  const data = await getCampaignVisitorsData();
+type CampaignVisitorsData = {
+  total_visitors: number;
+  performance: number;
+  chart: {
+    x: string;
+    y: number;
+  }[];
+};
+
+export function CampaignVisitors({ className }: { className?: string }) {
+  const [data, setData] = useState<CampaignVisitorsData | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    getCampaignVisitorsData().then((result) => {
+      if (isActive) {
+        setData(result);
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  if (!data) {
+    return (
+      <div
+        className={cn(
+          "rounded-[10px] bg-white px-6 py-5.5 shadow-1 dark:bg-gray-dark dark:shadow-card",
+          className,
+        )}
+      >
+        <p className="text-sm font-medium text-dark-6">Carregando...</p>
+      </div>
+    );
+  }
 
   return (
     <div

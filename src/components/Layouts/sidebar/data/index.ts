@@ -1,4 +1,4 @@
-import * as Icons from "../icons";
+﻿import * as Icons from "../icons";
 
 type IconType = (props: Icons.PropsType) => JSX.Element;
 
@@ -27,15 +27,21 @@ export const NAV_DATA: NavSection[] = [
     items: [
       {
         title: "Vis\u00e3o geral",
+        url: "/geral",
+        icon: Icons.HomeIcon,
+        description: "Gr\u00e1ficos e tend\u00eancias do sistema.",
+        items: [],
+      },
+      {
+        title: "Gr\u00e1ficos",
         url: "/graficos",
-        icon: Icons.PieChart,
-        description: "Tend\u00eancias e comparativos em gr\u00e1ficos.",
+        icon: Icons.ChartLine,
+        description: "An\u00e1lise visual detalhada.",
         items: [],
       },
       {
         title: "Trif\u00e1sico",
-        url: "/trifasico",
-        icon: Icons.Alphabet,
+        icon: Icons.Layers,
         description: "Vis\u00e3o consolidada das tr\u00eas fases.",
         items: [
           {
@@ -58,28 +64,28 @@ export const NAV_DATA: NavSection[] = [
       {
         title: "Alarmes",
         url: "/alarms",
-        icon: Icons.Table,
+        icon: Icons.Bell,
         description: "Lista e status dos alarmes.",
         items: [],
       },
       {
         title: "Hist\u00f3rico",
         url: "/historico",
-        icon: Icons.Table,
+        icon: Icons.Clock,
         description: "Registros e eventos anteriores.",
         items: [],
       },
       {
         title: "Consumo",
         url: "/",
-        icon: Icons.HomeIcon,
-        description: "Resumo geral do sistema.",
+        icon: Icons.Gauge,
+        description: "Indicadores de consumo e uso de energia.",
         items: [],
       },
       {
         title: "Informa\u00e7\u00f5es adicionais",
         url: "/informacoes-adicionais",
-        icon: Icons.FourCircle,
+        icon: Icons.InfoCircle,
         description: "Dados complementares do sistema.",
         items: [],
       },
