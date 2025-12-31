@@ -27,9 +27,9 @@ export const NAV_DATA: NavSection[] = [
     items: [
       {
         title: "Vis\u00e3o geral",
-        url: "/",
-        icon: Icons.HomeIcon,
-        description: "Resumo geral do sistema.",
+        url: "/graficos",
+        icon: Icons.PieChart,
+        description: "Tend\u00eancias e comparativos em gr\u00e1ficos.",
         items: [],
       },
       {
@@ -70,10 +70,10 @@ export const NAV_DATA: NavSection[] = [
         items: [],
       },
       {
-        title: "Gr\u00e1ficos",
-        url: "/graficos",
-        icon: Icons.PieChart,
-        description: "Tend\u00eancias e comparativos em gr\u00e1ficos.",
+        title: "Consumo",
+        url: "/",
+        icon: Icons.HomeIcon,
+        description: "Resumo geral do sistema.",
         items: [],
       },
       {

@@ -74,12 +74,12 @@ export function HistoricoView() {
   const suggestions = useMemo(() => {
     const normalizedQuery = searchTerm.trim().toLowerCase();
     if (!normalizedQuery) {
-      return variableOptions.slice(0, 6);
+      return variableOptions;
     }
 
-    return variableOptions
-      .filter((name) => name.toLowerCase().includes(normalizedQuery))
-      .slice(0, 6);
+    return variableOptions.filter((name) =>
+      name.toLowerCase().includes(normalizedQuery),
+    );
   }, [searchTerm, variableOptions]);
 
   const showSuggestions = isSuggestionsOpen && suggestions.length > 0;
