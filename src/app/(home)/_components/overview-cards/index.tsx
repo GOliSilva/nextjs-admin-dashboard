@@ -52,7 +52,7 @@ export async function OverviewCardsGroup() {
           indicatorStyle: tensaoA.indicatorStyle,
           growthRate: 0,
         }}
-        Icon={icons.Views}
+        Icon={icons.VoltageA}
       />
 
       <OverviewCard
@@ -64,7 +64,7 @@ export async function OverviewCardsGroup() {
           indicatorStyle: tensaoB.indicatorStyle,
           growthRate: 0,
         }}
-        Icon={icons.Profit}
+        Icon={icons.VoltageB}
       />
 
       <OverviewCard
@@ -76,7 +76,7 @@ export async function OverviewCardsGroup() {
           indicatorStyle: tensaoC.indicatorStyle,
           growthRate: 0,
         }}
-        Icon={icons.Product}
+        Icon={icons.VoltageC}
       />
 
       <OverviewCard
@@ -86,7 +86,7 @@ export async function OverviewCardsGroup() {
           growthRate: 0,
           hideIndicator: true,
         }}
-        Icon={icons.Users}
+        Icon={icons.Power}
       />
     </div>
   );

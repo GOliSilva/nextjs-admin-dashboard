@@ -18,7 +18,7 @@ export function PhaseInfo({ phase }: PropsType) {
                     growthRate: 0,
                     hideIndicator: true,
                 }}
-                Icon={icons.Views}
+                Icon={icons.AngleCurrent}
             />
             <OverviewCard
                 label="Ângulo de Tensão"
@@ -27,7 +27,7 @@ export function PhaseInfo({ phase }: PropsType) {
                     growthRate: 0,
                     hideIndicator: true,
                 }}
-                Icon={icons.Profit}
+                Icon={icons.AngleVoltage}
             />
             <OverviewCard
                 label="Defasagem"
@@ -36,7 +36,7 @@ export function PhaseInfo({ phase }: PropsType) {
                     growthRate: 0,
                     hideIndicator: true,
                 }}
-                Icon={icons.Product}
+                Icon={icons.PhaseShift}
             />
         </div>
     );

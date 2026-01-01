@@ -13,22 +13,22 @@ export async function InfoGeraisCards() {
     {
       label: "Pot\u00EAncia direta",
       value: formatPower(potencias.direta, "W"),
-      Icon: icons.Views,
+      Icon: icons.PowerDirect,
     },
     {
       label: "Pot\u00EAncia reversa",
       value: formatPower(potencias.reversa, "W"),
-      Icon: icons.Profit,
+      Icon: icons.PowerReverse,
     },
     {
       label: "Pot\u00EAncia reativa",
       value: formatPower(potencias.reativa, "Var"),
-      Icon: icons.Product,
+      Icon: icons.PowerReactive,
     },
     {
       label: "Pot\u00EAncia complexa",
       value: formatPower(potencias.complexa, "Va"),
-      Icon: icons.Users,
+      Icon: icons.PowerComplex,
     },
   ];
 

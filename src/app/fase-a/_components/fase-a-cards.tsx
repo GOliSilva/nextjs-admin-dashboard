@@ -19,7 +19,7 @@ export async function FaseACards() {
                     growthRate: 0,
                     hideIndicator: true,
                 }}
-                Icon={icons.Views}
+                Icon={icons.Current}
             />
             <OverviewCard
                 label="Tensão Atual"
@@ -28,7 +28,7 @@ export async function FaseACards() {
                     growthRate: 0,
                     hideIndicator: true,
                 }}
-                Icon={icons.Profit}
+                Icon={icons.Voltage}
             />
             <OverviewCard
                 label="Potência Atual"
@@ -37,7 +37,7 @@ export async function FaseACards() {
                     growthRate: 0,
                     hideIndicator: true,
                 }}
-                Icon={icons.Product}
+                Icon={icons.Power}
             />
             <OverviewCard
                 label="Fator de Potência"
@@ -46,7 +46,7 @@ export async function FaseACards() {
                     growthRate: 0,
                     hideIndicator: true,
                 }}
-                Icon={icons.Users}
+                Icon={icons.PowerFactor}
             />
         </div>
     );
