@@ -34,7 +34,7 @@ export function OverviewCard({
     <div
       className={cn(
         "rounded-[10px] bg-white shadow-1 dark:bg-gray-dark",
-        "box-border w-full",
+        "box-border w-full h-full flex flex-col",
         compact ? "p-3" : "p-6",
         className,
       )}
@@ -43,7 +43,7 @@ export function OverviewCard({
 
       <div
         className={cn(
-          "flex items-end justify-between",
+          "flex items-end justify-between flex-1",
           compact ? "mt-3" : "mt-6",
         )}
       >
@@ -51,7 +51,7 @@ export function OverviewCard({
         <div className="flex-1 min-w-0 pr-2">
           <p
             className={cn(
-              "font-bold text-dark dark:text-white leading-tight",
+              "font-bold text-dark dark:text-white leading-tight whitespace-nowrap",
               compact ? "text-base" : "text-heading-6",
             )}
             style={data.valueStyle}
@@ -60,7 +60,7 @@ export function OverviewCard({
           </p>
           <p
             className={cn(
-              "font-medium text-dark-6 mt-1",
+              "font-medium text-dark-6 mt-1 whitespace-nowrap",
               compact ? "text-[11px]" : "text-sm",
             )}
           >

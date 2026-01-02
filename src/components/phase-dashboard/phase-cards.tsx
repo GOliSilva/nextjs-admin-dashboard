@@ -1,5 +1,4 @@
-import { OverviewCard } from "@/app/(home)/_components/overview-cards/card";
-import * as icons from "@/app/(home)/_components/overview-cards/icons";
+import { PhaseCardsClient } from "./phase-cards-client";
 import { getCurrentValue, getPhaseData, PhaseType } from "@/services/phase-data.services";
 
 type PropsType = {
@@ -26,66 +25,33 @@ export async function PhaseCards({ phase, phases, compact }: PropsType) {
     const tensao = averageMetric("tensao");
     const potencia = averageMetric("potencia");
     const fatorPotencia = averageMetric("fator_potencia");
-    const containerClassName = compact
-        ? "flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5"
-        : "grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5";
-    const cardClassName = compact
-        ? "min-w-[160px] shrink-0 sm:min-w-0"
-        : undefined;
-    const iconProps = compact
-        ? { className: "size-10 sm:size-[58px]" }
-        : undefined;
 
-    return (
-        <div className={containerClassName}>
-            <OverviewCard
-                label="Corrente Média"
-                data={{
-                    value: `${formatValue(corrente)} A`,
-                    growthRate: 0,
-                    hideIndicator: true,
-                }}
-                Icon={icons.Current}
-                className={cardClassName}
-                iconProps={iconProps}
-                compact={compact}
-            />
-            <OverviewCard
-                label="Tensão Média"
-                data={{
-                    value: `${formatValue(tensao)} V`,
-                    growthRate: 0,
-                    hideIndicator: true,
-                }}
-                Icon={icons.Voltage}
-                className={cardClassName}
-                iconProps={iconProps}
-                compact={compact}
-            />
-            <OverviewCard
-                label="Potência Media"
-                data={{
-                    value: `${formatValue(potencia)} W`,
-                    growthRate: 0,
-                    hideIndicator: true,
-                }}
-                Icon={icons.Power}
-                className={cardClassName}
-                iconProps={iconProps}
-                compact={compact}
-            />
-            <OverviewCard
-                label="Fator de Potência Media"
-                data={{
-                    value: `${formatValue(fatorPotencia)}`,
-                    growthRate: 0,
-                    hideIndicator: true,
-                }}
-                Icon={icons.PowerFactor}
-                className={cardClassName}
-                iconProps={iconProps}
-                compact={compact}
-            />
-        </div>
-    );
+    const cards = [
+        {
+            label: "Corrente Média",
+            value: `${formatValue(corrente)} A`,
+            hideIndicator: true,
+            iconName: "Current" as const,
+        },
+        {
+            label: "Tensão Média",
+            value: `${formatValue(tensao)} V`,
+            hideIndicator: true,
+            iconName: "Voltage" as const,
+        },
+        {
+            label: "Potência Media",
+            value: `${formatValue(potencia)} W`,
+            hideIndicator: true,
+            iconName: "Power" as const,
+        },
+        {
+            label: "Fator de Potência Media",
+            value: `${formatValue(fatorPotencia)}`,
+            hideIndicator: true,
+            iconName: "PowerFactor" as const,
+        },
+    ];
+
+    return <PhaseCardsClient cards={cards} compact={compact} />;
 }
