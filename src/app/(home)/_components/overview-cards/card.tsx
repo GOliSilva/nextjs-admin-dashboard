@@ -27,15 +27,15 @@ export function OverviewCard({
   iconProps,
   compact,
 }: PropsType) {
-  const isDecreasing =
-    data.indicatorIsDecreasing ?? data.growthRate < 0;
+  const isDecreasing = data.indicatorIsDecreasing ?? data.growthRate < 0;
   const indicatorValue = data.indicatorValue ?? `${data.growthRate}%`;
 
   return (
     <div
       className={cn(
         "rounded-[10px] bg-white shadow-1 dark:bg-gray-dark",
-        compact ? "p-4" : "p-6",
+        "box-border w-full",
+        compact ? "p-3" : "p-6",
         className,
       )}
     >
@@ -44,53 +44,47 @@ export function OverviewCard({
       <div
         className={cn(
           "flex items-end justify-between",
-          compact ? "mt-4" : "mt-6",
+          compact ? "mt-3" : "mt-6",
         )}
       >
-        <dl>
-          <dt
+        {/* Left side: Value and Label */}
+        <div className="flex-1 min-w-0 pr-2">
+          <p
             className={cn(
-              "mb-1.5 font-bold text-dark dark:text-white",
-              compact ? "text-lg" : "text-heading-6",
+              "font-bold text-dark dark:text-white leading-tight",
+              compact ? "text-base" : "text-heading-6",
             )}
             style={data.valueStyle}
           >
             {data.value}
-          </dt>
-
-          <dd
+          </p>
+          <p
             className={cn(
-              "font-medium text-dark-6",
-              compact ? "text-xs" : "text-sm",
+              "font-medium text-dark-6 mt-1",
+              compact ? "text-[11px]" : "text-sm",
             )}
           >
             {label}
-          </dd>
-        </dl>
+          </p>
+        </div>
 
+        {/* Right side: Indicator */}
         {!data.hideIndicator && (
-          <dl
+          <div
             className={cn(
-              "font-medium",
-              compact ? "text-xs" : "text-sm",
+              "flex items-center gap-1 font-medium",
+              compact ? "text-[11px]" : "text-sm",
               isDecreasing ? "text-red" : "text-green",
             )}
             style={data.indicatorStyle}
           >
-            <dt className="flex items-center gap-1.5">
-              {indicatorValue}
-              {isDecreasing ? (
-                <ArrowDownIcon aria-hidden />
-              ) : (
-                <ArrowUpIcon aria-hidden />
-              )}
-            </dt>
-
-            <dd className="sr-only">
-              {label} {isDecreasing ? "Decreased" : "Increased"} by{" "}
-              {indicatorValue}
-            </dd>
-          </dl>
+            <span>{indicatorValue}</span>
+            {isDecreasing ? (
+              <ArrowDownIcon aria-hidden className="w-3 h-3 flex-shrink-0" />
+            ) : (
+              <ArrowUpIcon aria-hidden className="w-3 h-3 flex-shrink-0" />
+            )}
+          </div>
         )}
       </div>
     </div>
