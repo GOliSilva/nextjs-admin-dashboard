@@ -1,57 +1,60 @@
-import { ConsumoPorFaseLine } from "@/components/Charts/consumo-por-fase-line";
-import { PaymentsOverview } from "@/components/Charts/payments-overview";
-import { UsedDevices } from "@/components/Charts/used-devices";
-import { WeeksProfit } from "@/components/Charts/weeks-profit";
+import { Suspense } from "react";
+import { OverviewCardsGroup } from "@/app/(home)/_components/overview-cards";
+import { OverviewCardsSkeleton } from "@/app/(home)/_components/overview-cards/skeleton";
+import { GraficosChart } from "@/app/graficos/_components/graficos-chart";
+import type { Metadata } from "next";
 import { createTimeFrameExtractor } from "@/utils/timeframe-extractor";
 
-type PropsType = {
+export const metadata: Metadata = {
+  title: "Visao geral",
+};
+
+type Props = {
   searchParams: Promise<{
     selected_time_frame?: string;
   }>;
 };
 
-export default async function Home({ searchParams }: PropsType) {
+export default async function Home({ searchParams }: Props) {
   const { selected_time_frame } = await searchParams;
   const extractTimeFrame = createTimeFrameExtractor(selected_time_frame);
-  const overviewMode = extractTimeFrame("overview_mode")?.split(":")[1];
-  const overviewPeriod = extractTimeFrame("overview_period")?.split(":")[1];
 
   return (
-    <>
-      <div className="mt-4 grid grid-cols-12 gap-4 md:mt-6 md:gap-6 2xl:mt-9 2xl:gap-7.5">
-        <PaymentsOverview
-          className="col-span-12 xl:col-span-7"
-          key={`overview-${overviewMode ?? "consumo"}-${overviewPeriod ?? "semanal"}`}
-          timeFrame={overviewPeriod}
-          sectionKey="overview_period"
-          mode={overviewMode}
-          modeSectionKey="overview_mode"
-          modeItems={["consumo", "geracao"]}
-          timeFrameItems={["semanal", "diario"]}
-        />
+    <div className="flex flex-col gap-4 md:gap-6 2xl:gap-7.5">
+      <Suspense fallback={<OverviewCardsSkeleton compact />}>
+        <OverviewCardsGroup compact />
+      </Suspense>
 
-        <WeeksProfit
-          key={extractTimeFrame("weeks_profit")}
-          timeFrame={extractTimeFrame("weeks_profit")?.split(":")[1]}
-          className="col-span-12 xl:col-span-5"
+      <div className="grid gap-4 sm:grid-cols-2 md:gap-6 2xl:gap-7.5">
+        <GraficosChart
+          title="Tensao"
+          metric="tensao"
+          timeFrame={extractTimeFrame("graficos_tensao")?.split(":")[1]}
+          sectionKey="graficos_tensao"
+          compact
         />
-
-        <UsedDevices
-          className="col-span-12 xl:col-span-5"
-          key={extractTimeFrame("used_devices")}
-          timeFrame={extractTimeFrame("used_devices")?.split(":")[1]}
+        <GraficosChart
+          title="Corrente"
+          metric="corrente"
+          timeFrame={extractTimeFrame("graficos_corrente")?.split(":")[1]}
+          sectionKey="graficos_corrente"
+          compact
         />
-
-        <ConsumoPorFaseLine
-          className="col-span-12 xl:col-span-7"
-          key={extractTimeFrame("consumos_por_fase")}
-          timeFrame={
-            extractTimeFrame("consumos_por_fase")?.split(":")[1] ?? "semanal"
-          }
-          title="Consumos por fase"
-          sectionKey="consumos_por_fase"
+        <GraficosChart
+          title="Fator de potencia"
+          metric="fator_potencia"
+          timeFrame={extractTimeFrame("graficos_fator_potencia")?.split(":")[1]}
+          sectionKey="graficos_fator_potencia"
+          compact
+        />
+        <GraficosChart
+          title="Potencia"
+          metric="potencia"
+          timeFrame={extractTimeFrame("graficos_potencia")?.split(":")[1]}
+          sectionKey="graficos_potencia"
+          compact
         />
       </div>
-    </>
+    </div>
   );
 }

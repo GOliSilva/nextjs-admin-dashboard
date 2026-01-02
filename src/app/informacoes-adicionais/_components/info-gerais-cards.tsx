@@ -6,7 +6,11 @@ import * as icons from "@/app/(home)/_components/overview-cards/icons";
 const formatPower = (value: number, unit: string) =>
   `${standardFormat(value)} ${unit}`;
 
-export async function InfoGeraisCards() {
+type InfoGeraisCardsProps = {
+  compact?: boolean;
+};
+
+export async function InfoGeraisCards({ compact }: InfoGeraisCardsProps) {
   const potencias = await getInfoGeraisPotencias();
 
   const cards = [
@@ -32,8 +36,18 @@ export async function InfoGeraisCards() {
     },
   ];
 
+  const containerClassName = compact
+    ? "flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5"
+    : "grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5";
+  const cardClassName = compact
+    ? "min-w-[160px] shrink-0 sm:min-w-0"
+    : undefined;
+  const iconProps = compact
+    ? { className: "size-10 sm:size-[58px]" }
+    : undefined;
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5">
+    <div className={containerClassName}>
       {cards.map((card) => (
         <OverviewCard
           key={card.label}
@@ -44,6 +58,9 @@ export async function InfoGeraisCards() {
             hideIndicator: true,
           }}
           Icon={card.Icon}
+          className={cardClassName}
+          iconProps={iconProps}
+          compact={compact}
         />
       ))}
     </div>

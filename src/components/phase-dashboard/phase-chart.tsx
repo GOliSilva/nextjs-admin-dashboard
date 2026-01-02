@@ -9,6 +9,7 @@ type PropsType = {
     metric?: string;
     timeFrame?: string;
     className?: string;
+    compact?: boolean;
 };
 
 // Maps for UI labels to internal keys
@@ -30,6 +31,7 @@ export async function PhaseChart({
     metric,
     timeFrame,
     className,
+    compact,
 }: PropsType) {
     // Defaults
     const resolvedMetricLabel = metric || "Corrente";
@@ -53,31 +55,47 @@ export async function PhaseChart({
     const chartColors = phasesToRender.length > 1
         ? phasesToRender.map((phaseKey) => phaseColors[phaseKey])
         : ["#5750F1"];
+    const containerClassName = cn(
+        "grid gap-2 rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card",
+        compact ? "p-4 sm:px-7.5 sm:pb-6 sm:pt-7.5" : "px-7.5 pb-6 pt-7.5",
+        className,
+    );
+    const headerClassName = compact
+        ? "flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between"
+        : "flex flex-wrap items-center justify-between gap-4";
+    const titleClassName = cn(
+        "font-bold text-dark dark:text-white",
+        compact ? "text-lg sm:text-body-2xlg" : "text-body-2xlg",
+    );
+    const pickerGroupClassName = compact
+        ? "flex w-full flex-wrap items-center gap-2 sm:w-auto"
+        : "flex flex-wrap items-center gap-2";
 
     return (
         <div
-            className={cn(
-                "grid gap-2 rounded-[10px] bg-white px-7.5 pb-6 pt-7.5 shadow-1 dark:bg-gray-dark dark:shadow-card",
-                className,
-            )}
+            className={containerClassName}
         >
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-body-2xlg font-bold text-dark dark:text-white">
+            <div className={headerClassName}>
+                <h2 className={titleClassName}>
                     {resolvedMetricLabel} ({resolvedTimeFrameLabel})
                 </h2>
 
-                <div className="flex flex-wrap items-center gap-2">
-                    <PeriodPicker
-                        defaultValue={resolvedMetricLabel}
-                        sectionKey={"metric"}
-                        items={Object.keys(METRIC_MAP)}
-                    />
+                <div className={pickerGroupClassName}>
+                    <div className={compact ? "w-full sm:w-auto" : undefined}>
+                        <PeriodPicker
+                            defaultValue={resolvedMetricLabel}
+                            sectionKey={"metric"}
+                            items={Object.keys(METRIC_MAP)}
+                        />
+                    </div>
 
-                    <PeriodPicker
-                        defaultValue={resolvedTimeFrameLabel}
-                        sectionKey={"time_frame"}
-                        items={Object.keys(TIME_FRAME_MAP)}
-                    />
+                    <div className={compact ? "w-full sm:w-auto" : undefined}>
+                        <PeriodPicker
+                            defaultValue={resolvedTimeFrameLabel}
+                            sectionKey={"time_frame"}
+                            items={Object.keys(TIME_FRAME_MAP)}
+                        />
+                    </div>
                 </div>
             </div>
 

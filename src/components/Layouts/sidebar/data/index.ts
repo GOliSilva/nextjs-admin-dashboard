@@ -27,7 +27,7 @@ export const NAV_DATA: NavSection[] = [
     items: [
       {
         title: "Vis\u00e3o geral",
-        url: "/geral",
+        url: "/",
         icon: Icons.HomeIcon,
         description: "Gr\u00e1ficos e tend\u00eancias do sistema.",
         items: [],
@@ -77,7 +77,7 @@ export const NAV_DATA: NavSection[] = [
       },
       {
         title: "Consumo",
-        url: "/",
+        url: "/consumo",
         icon: Icons.Gauge,
         description: "Indicadores de consumo e uso de energia.",
         items: [],

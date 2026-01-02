@@ -6,32 +6,41 @@ import { DonutChart } from "./chart";
 type PropsType = {
   timeFrame?: string;
   className?: string;
+  compact?: boolean;
 };
 
 export async function UsedDevices({
   timeFrame = "semanal",
   className,
+  compact,
 }: PropsType) {
   const period = timeFrame === "mensal" ? "mensal" : "semanal";
   const data = await getConsumoPorFase(period);
+  const containerClassName = cn(
+    "grid grid-cols-1 grid-rows-[auto_1fr] rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card",
+    compact ? "gap-4 p-4 sm:gap-9 sm:p-7.5" : "gap-9 p-7.5",
+    className,
+  );
+  const headerClassName = compact
+    ? "flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between"
+    : "flex flex-wrap items-center justify-between gap-4";
+  const titleClassName = cn(
+    "font-bold text-dark dark:text-white",
+    compact ? "text-lg sm:text-body-2xlg" : "text-body-2xlg",
+  );
 
   return (
-    <div
-      className={cn(
-        "grid grid-cols-1 grid-rows-[auto_1fr] gap-9 rounded-[10px] bg-white p-7.5 shadow-1 dark:bg-gray-dark dark:shadow-card",
-        className,
-      )}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-body-2xlg font-bold text-dark dark:text-white">
-          Consumo por Fase
-        </h2>
+    <div className={containerClassName}>
+      <div className={headerClassName}>
+        <h2 className={titleClassName}>Consumo por Fase</h2>
 
-        <PeriodPicker
-          defaultValue={period}
-          sectionKey="used_devices"
-          items={["semanal", "mensal"]}
-        />
+        <div className={compact ? "w-full sm:w-auto" : undefined}>
+          <PeriodPicker
+            defaultValue={period}
+            sectionKey="used_devices"
+            items={["semanal", "mensal"]}
+          />
+        </div>
       </div>
 
       <div className="grid place-items-center">

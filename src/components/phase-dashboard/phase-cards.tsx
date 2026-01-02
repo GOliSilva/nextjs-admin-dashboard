@@ -5,9 +5,10 @@ import { getCurrentValue, getPhaseData, PhaseType } from "@/services/phase-data.
 type PropsType = {
     phase: PhaseType;
     phases?: PhaseType[];
+    compact?: boolean;
 }
 
-export async function PhaseCards({ phase, phases }: PropsType) {
+export async function PhaseCards({ phase, phases, compact }: PropsType) {
     const phasesToUse = phases && phases.length > 0 ? phases : [phase];
     await Promise.all(phasesToUse.map((phaseKey) => getPhaseData(phaseKey)));
 
@@ -25,9 +26,18 @@ export async function PhaseCards({ phase, phases }: PropsType) {
     const tensao = averageMetric("tensao");
     const potencia = averageMetric("potencia");
     const fatorPotencia = averageMetric("fator_potencia");
+    const containerClassName = compact
+        ? "flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5"
+        : "grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5";
+    const cardClassName = compact
+        ? "min-w-[160px] shrink-0 sm:min-w-0"
+        : undefined;
+    const iconProps = compact
+        ? { className: "size-10 sm:size-[58px]" }
+        : undefined;
 
     return (
-        <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5">
+        <div className={containerClassName}>
             <OverviewCard
                 label="Corrente Média"
                 data={{
@@ -36,6 +46,9 @@ export async function PhaseCards({ phase, phases }: PropsType) {
                     hideIndicator: true,
                 }}
                 Icon={icons.Current}
+                className={cardClassName}
+                iconProps={iconProps}
+                compact={compact}
             />
             <OverviewCard
                 label="Tensão Média"
@@ -45,6 +58,9 @@ export async function PhaseCards({ phase, phases }: PropsType) {
                     hideIndicator: true,
                 }}
                 Icon={icons.Voltage}
+                className={cardClassName}
+                iconProps={iconProps}
+                compact={compact}
             />
             <OverviewCard
                 label="Potência Media"
@@ -54,6 +70,9 @@ export async function PhaseCards({ phase, phases }: PropsType) {
                     hideIndicator: true,
                 }}
                 Icon={icons.Power}
+                className={cardClassName}
+                iconProps={iconProps}
+                compact={compact}
             />
             <OverviewCard
                 label="Fator de Potência Media"
@@ -63,6 +82,9 @@ export async function PhaseCards({ phase, phases }: PropsType) {
                     hideIndicator: true,
                 }}
                 Icon={icons.PowerFactor}
+                className={cardClassName}
+                iconProps={iconProps}
+                compact={compact}
             />
         </div>
     );

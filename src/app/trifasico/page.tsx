@@ -20,28 +20,30 @@ export default async function FaseAPage({ searchParams }: PropsType) {
   const energyType = extractTimeFrame("energy_type")?.split(":")[1];
 
   return (
-    <>
-      <Suspense fallback={<OverviewCardsSkeleton />}>
-        <PhaseCards phase="A" phases={["A", "B", "C"]} />
+    <div className="flex flex-col gap-4 md:gap-6 2xl:gap-7.5">
+      <Suspense fallback={<OverviewCardsSkeleton compact />}>
+        <PhaseCards phase="A" phases={["A", "B", "C"]} compact />
       </Suspense>
 
-      <div className="mt-4 grid grid-cols-12 gap-4 md:mt-6 md:gap-6 2xl:mt-9 2xl:gap-7.5">
+      <div className="grid gap-4 md:gap-6 2xl:gap-7.5 xl:grid-cols-12">
         <PhaseChart
-          className="col-span-12 xl:col-span-7"
+          className="xl:col-span-7"
           phase="A"
           phases={["A", "B", "C"]}
           metric={metric}
           timeFrame={timeFrame}
+          compact
         />
 
         <PhaseEnergyChart
-          className="col-span-12 xl:col-span-5"
+          className="xl:col-span-5"
           phase="A"
           phases={["A", "B", "C"]}
           energyType={energyType}
+          compact
         />
       </div>
 
-    </>
+    </div>
   );
 }

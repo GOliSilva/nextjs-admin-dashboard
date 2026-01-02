@@ -15,6 +15,7 @@ type PropsType = {
   mode?: string;
   modeSectionKey?: string;
   modeItems?: string[];
+  compact?: boolean;
 };
 
 type SeriesItem = {
@@ -55,6 +56,7 @@ export async function PaymentsOverview({
   mode,
   modeSectionKey,
   modeItems,
+  compact,
 }: PropsType) {
   const showModePicker = Boolean(modeSectionKey);
   const normalizedMode = normalizeMode(mode);
@@ -74,6 +76,29 @@ export async function PaymentsOverview({
     : timeFrame ?? "monthly";
   const showTimeFramePicker =
     !showModePicker || normalizedMode === "consumo" || normalizedMode === "geracao";
+  const containerClassName = cn(
+    "grid gap-2 rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card",
+    compact ? "p-4 sm:px-7.5 sm:pb-6 sm:pt-7.5" : "px-7.5 pb-6 pt-7.5",
+    className,
+  );
+  const headerClassName = compact
+    ? "flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between"
+    : "flex flex-wrap items-center justify-between gap-4";
+  const titleClassName = cn(
+    "font-bold text-dark dark:text-white",
+    compact ? "text-lg sm:text-body-2xlg" : "text-body-2xlg",
+  );
+  const pickerGroupClassName = compact
+    ? "flex w-full flex-wrap items-center gap-2 sm:w-auto"
+    : "flex flex-wrap items-center gap-2";
+  const summaryValueClassName = cn(
+    "font-bold text-dark dark:text-white",
+    compact ? "text-lg sm:text-xl" : "text-xl",
+  );
+  const summaryLabelClassName = cn(
+    "font-medium dark:text-dark-6",
+    compact ? "text-xs sm:text-sm" : undefined,
+  );
 
   let series: SeriesItem[] = [];
   let summaryItems: { label: string; value: string }[] = [];
@@ -137,32 +162,29 @@ export async function PaymentsOverview({
   }
 
   return (
-    <div
-      className={cn(
-        "grid gap-2 rounded-[10px] bg-white px-7.5 pb-6 pt-7.5 shadow-1 dark:bg-gray-dark dark:shadow-card",
-        className,
-      )}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-body-2xlg font-bold text-dark dark:text-white">
-          {resolvedTitle}
-        </h2>
+    <div className={containerClassName}>
+      <div className={headerClassName}>
+        <h2 className={titleClassName}>{resolvedTitle}</h2>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className={pickerGroupClassName}>
           {showModePicker && (
-            <PeriodPicker
-              defaultValue={normalizedMode}
-              sectionKey={modeSectionKey ?? "overview_mode"}
-              items={resolvedModeItems}
-            />
+            <div className={compact ? "w-full sm:w-auto" : undefined}>
+              <PeriodPicker
+                defaultValue={normalizedMode}
+                sectionKey={modeSectionKey ?? "overview_mode"}
+                items={resolvedModeItems}
+              />
+            </div>
           )}
 
           {showTimeFramePicker && (
-            <PeriodPicker
-              defaultValue={resolvedTimeFrame}
-              sectionKey={sectionKey}
-              items={timeFrameItems}
-            />
+            <div className={compact ? "w-full sm:w-auto" : undefined}>
+              <PeriodPicker
+                defaultValue={resolvedTimeFrame}
+                sectionKey={sectionKey}
+                items={timeFrameItems}
+              />
+            </div>
           )}
         </div>
       </div>
@@ -184,10 +206,8 @@ export async function PaymentsOverview({
                 "dark:border-dark-3 max-sm:mb-3 max-sm:border-b max-sm:pb-3",
             )}
           >
-            <dt className="text-xl font-bold text-dark dark:text-white">
-              {item.value}
-            </dt>
-            <dd className="font-medium dark:text-dark-6">{item.label}</dd>
+            <dt className={summaryValueClassName}>{item.value}</dt>
+            <dd className={summaryLabelClassName}>{item.label}</dd>
           </div>
         ))}
       </dl>

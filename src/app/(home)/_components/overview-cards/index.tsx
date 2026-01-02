@@ -35,14 +35,29 @@ const formatVoltage = (rawValue: string) => {
   };
 };
 
-export async function OverviewCardsGroup() {
+type OverviewCardsGroupProps = {
+  compact?: boolean;
+};
+
+export async function OverviewCardsGroup({
+  compact,
+}: OverviewCardsGroupProps) {
   const phaseConsumption = await getPhaseConsumptionData();
   const tensaoA = formatVoltage(phaseConsumption.TensaoA);
   const tensaoB = formatVoltage(phaseConsumption.TensaoB);
   const tensaoC = formatVoltage(phaseConsumption.TensaoC);
+  const containerClassName = compact
+    ? "flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5"
+    : "grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5";
+  const cardClassName = compact
+    ? "min-w-[160px] shrink-0 sm:min-w-0"
+    : undefined;
+  const iconProps = compact
+    ? { className: "size-10 sm:size-[58px]" }
+    : undefined;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5">
+    <div className={containerClassName}>
       <OverviewCard
         label="Tensão A"
         data={{
@@ -53,6 +68,9 @@ export async function OverviewCardsGroup() {
           growthRate: 0,
         }}
         Icon={icons.VoltageA}
+        className={cardClassName}
+        iconProps={iconProps}
+        compact={compact}
       />
 
       <OverviewCard
@@ -65,6 +83,9 @@ export async function OverviewCardsGroup() {
           growthRate: 0,
         }}
         Icon={icons.VoltageB}
+        className={cardClassName}
+        iconProps={iconProps}
+        compact={compact}
       />
 
       <OverviewCard
@@ -77,6 +98,9 @@ export async function OverviewCardsGroup() {
           growthRate: 0,
         }}
         Icon={icons.VoltageC}
+        className={cardClassName}
+        iconProps={iconProps}
+        compact={compact}
       />
 
       <OverviewCard
@@ -87,6 +111,9 @@ export async function OverviewCardsGroup() {
           hideIndicator: true,
         }}
         Icon={icons.Power}
+        className={cardClassName}
+        iconProps={iconProps}
+        compact={compact}
       />
     </div>
   );
