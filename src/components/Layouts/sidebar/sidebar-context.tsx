@@ -30,17 +30,33 @@ export function SidebarProvider({
   children: React.ReactNode;
   defaultOpen?: boolean;
 }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
   const isMobile = useIsMobile();
+  // Don't set initial open state until we know if it's mobile
+  const [isOpen, setIsOpen] = useState<boolean>(() => {
+    // Start closed on initial render to prevent flash
+    return false;
+  });
   const bodyOverflow = useRef<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    if (isMobile) {
+    // Set correct initial state once we know if it's mobile
+    if (isMobile !== undefined && !isInitialized) {
+      setIsOpen(isMobile ? false : defaultOpen);
+      setIsInitialized(true);
+    }
+  }, [isMobile, defaultOpen, isInitialized]);
+
+  useEffect(() => {
+    // Only update on subsequent changes after initialization
+    if (!isInitialized) return;
+    
+    if (isMobile === true) {
       setIsOpen(false);
-    } else {
+    } else if (isMobile === false) {
       setIsOpen(true);
     }
-  }, [isMobile]);
+  }, [isMobile, isInitialized]);
 
   useEffect(() => {
     if (typeof document === "undefined") {

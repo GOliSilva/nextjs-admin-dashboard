@@ -35,7 +35,7 @@ export function Header() {
         <span className="sr-only">Toggle Sidebar</span>
       </button>
 
-      {isMobile && (
+      {isMobile === true && (
         <Link href={"/"} className="ml-2 max-[430px]:hidden min-[375px]:ml-4">
           <Image
             src={"/images/logo/logo-icon.svg"}

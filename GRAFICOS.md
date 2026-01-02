@@ -64,12 +64,12 @@ const options: ApexOptions = {
       show: false, // Remove toolbar de download
     },
     zoom: {
-      enabled: true, // Permite zoom nos dados
+      enabled: !isMobile, // Desabilita no mobile para permitir scroll da página
       type: "x",
       autoScaleYaxis: true, // Ajusta Y ao fazer zoom
     },
     selection: {
-      enabled: true, // Permite seleção de área
+      enabled: !isMobile, // Desabilita no mobile para permitir scroll da página
     },
     fontFamily: "inherit", // Usa fonte do Tailwind
   },
@@ -847,6 +847,116 @@ chart: {
 
 ## 🐛 Troubleshooting
 
+### Problema: Scroll vertical não funciona no mobile ao tocar no gráfico
+
+**Solução Implementada: Sistema de Foco Interativo**
+
+No mobile, o zoom é controlado por um sistema de foco:
+- **Tap (clique rápido)** no gráfico: Ativa/desativa o foco
+- **Quando em foco**: Zoom por pinch habilitado, borda azul visível, badge "Zoom ativo"
+- **Quando sem foco**: Scroll normal da página funciona
+- **Arrastar**: Não ativa o foco, permitindo scroll natural
+
+```tsx
+"use client";
+
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useState, useRef } from "react";
+import type { ApexOptions } from "apexcharts";
+import dynamic from "next/dynamic";
+
+const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
+
+export function MyChart({ series }: Props) {
+  const isMobile = useIsMobile();
+  const [isChartFocused, setIsChartFocused] = useState(false);
+  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
+
+  const options: ApexOptions = {
+    chart: {
+      zoom: {
+        enabled: isMobile ? isChartFocused : true, // Mobile: só com foco
+        type: "x",
+        autoScaleYaxis: true,
+      },
+      selection: {
+        enabled: isMobile ? isChartFocused : true, // Mobile: só com foco
+      },
+    },
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile) return;
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+    };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isMobile) return;
+    const touch = e.changedTouches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+    const deltaTime = Date.now() - touchStartRef.current.time;
+
+    // Tap: movimento < 10px e tempo < 300ms
+    const isTap = deltaX < 10 && deltaY < 10 && deltaTime < 300;
+
+    if (isTap) {
+      setIsChartFocused((prev) => !prev);
+    }
+  };
+
+  const handleClickOutside = () => {
+    if (isMobile && isChartFocused) {
+      setIsChartFocused(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Overlay para clicar fora e desfocar */}
+      {isMobile && isChartFocused && (
+        <div
+          className="fixed inset-0 z-10"
+          onClick={handleClickOutside}
+          onTouchStart={handleClickOutside}
+        />
+      )}
+      
+      <div
+        className={`relative transition-all ${
+          isChartFocused ? "z-20 ring-2 ring-primary rounded-lg" : ""
+        }`}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <Chart options={options} series={series} type="area" height={310} />
+        
+        {/* Badge indicador */}
+        {isMobile && isChartFocused && (
+          <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded">
+            Zoom ativo
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+```
+
+**Comportamento:**
+- 📱 **Mobile sem foco**: Scroll vertical funciona normalmente
+- 🔍 **Mobile com foco**: Zoom por pinch (dois dedos) habilitado
+- 🖥️ **Desktop**: Zoom sempre disponível (arrastar área com mouse)
+- 👆 **Tap vs Drag**: Detecta diferença entre toque rápido e arrasto
+- 🎯 **Feedback visual**: Borda azul + badge quando gráfico está em foco
+
+---
+
 ### Erro: "window is not defined"
 
 **Causa:** ApexCharts tentando acessar `window` no servidor.
@@ -1012,7 +1122,14 @@ export function MyCustomChart({ series, title }: Props) {
       height: 310,
       fontFamily: "inherit",
       toolbar: { show: false },
-      zoom: { enabled: true, type: "x" },
+      zoom: { 
+        enabled: !isMobile, // Desktop: zoom habilitado, Mobile: desabilitado para scroll
+        type: "x",
+        autoScaleYaxis: true,
+      },
+      selection: {
+        enabled: !isMobile, // Desktop: seleção habilitada, Mobile: desabilitada para scroll
+      },
     },
     colors: ["#5750F1", "#0ABEF9"],
     stroke: {

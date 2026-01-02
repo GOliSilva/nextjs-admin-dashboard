@@ -32,9 +32,9 @@ export function ScrollableCards({
 }: ScrollableCardsProps) {
   const isMobile = useIsMobile();
   
-  // Mobile: compact mode with scroll
-  // Desktop: original design (always full size)
-  const shouldUseCompactMode = isMobile && compact;
+  // Default to compact mode during hydration (mobile layout works on both)
+  // This prevents cards from disappearing while isMobile is undefined
+  const shouldUseCompactMode = (isMobile === undefined || isMobile === true) && compact;
   const iconProps = shouldUseCompactMode
     ? { className: "size-8" }
     : undefined;

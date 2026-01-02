@@ -44,7 +44,7 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile Overlay */}
-      {isMobile && isOpen && (
+      {isMobile === true && isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-300"
           onClick={() => setIsOpen(false)}
@@ -55,7 +55,7 @@ export function Sidebar() {
       <aside
         className={cn(
           "max-w-[290px] overflow-hidden border-r border-gray-200 bg-white transition-[width] duration-200 ease-linear dark:border-gray-800 dark:bg-gray-dark",
-          isMobile ? "fixed bottom-0 top-0 z-50" : "sticky top-0 h-screen",
+          isMobile === true ? "fixed bottom-0 top-0 z-50" : "sticky top-0 h-screen",
           isOpen ? "w-full" : "w-0",
         )}
         aria-label="Main navigation"
@@ -65,13 +65,13 @@ export function Sidebar() {
           <div className="relative pr-4.5">
             <Link
               href={"/"}
-              onClick={() => isMobile && toggleSidebar()}
+              onClick={() => isMobile === true && toggleSidebar()}
               className="px-0 py-2.5 min-[850px]:py-0"
             >
               <Logo />
             </Link>
 
-            {isMobile && (
+            {isMobile === true && (
               <button
                 onClick={toggleSidebar}
                 className="absolute left-3/4 right-4.5 top-1/2 -translate-y-1/2 text-right"
