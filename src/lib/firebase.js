@@ -42,6 +42,59 @@ function getMostRecentData(callback) {
     throw error;
   }
 }
+function getDataForGraph(
+  nameOfVariable = "Va",
+  dataInicial,
+  dataFinal,
+  limitCount = 500,
+  callback,
+) {
+  const fetchData = async () => {
+    try {
+      const constraints = [orderBy("createdAt", "desc"), limit(limitCount)];
 
-export { app, auth, db, getMostRecentData }
+      if (dataInicial) {
+        constraints.push(where("createdAt", ">=", dataInicial));
+      }
 
+      if (dataFinal) {
+        constraints.push(where("createdAt", "<=", dataFinal));
+      }
+
+      const q = query(collection(db, "dadosEnergia"), ...constraints);
+      const snap = await getDocs(q);
+      const points = snap.docs
+        .map((docSnap) => {
+          const data = docSnap.data() || {};
+          const rawValue = data[nameOfVariable];
+          const numeric =
+            typeof rawValue === "number"
+              ? rawValue
+              : Number.parseFloat(rawValue ?? "");
+          const createdAt = data.createdAt;
+          const x =
+            createdAt && typeof createdAt.toDate === "function"
+              ? createdAt.toDate()
+              : createdAt;
+
+          return {
+            x,
+            y: Number.isFinite(numeric) ? numeric : 0,
+          };
+        })
+        .reverse();
+
+      if (typeof callback === "function") {
+        callback(points);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  fetchData();
+  const intervalId = setInterval(fetchData, 60000);
+
+  return () => clearInterval(intervalId);
+}
+export { app, auth, db, getMostRecentData,getDataForGraph }

@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 import type { CSSProperties, JSX, SVGProps } from "react";
 
 export type CardData = {
@@ -30,20 +29,19 @@ export function ScrollableCards({
   cardWidth = "140px",
   className,
 }: ScrollableCardsProps) {
-  const isMobile = useIsMobile();
-  
-  // Default to compact mode during hydration (mobile layout works on both)
-  // This prevents cards from disappearing while isMobile is undefined
-  const shouldUseCompactMode = (isMobile === undefined || isMobile === true) && compact;
-  const iconProps = shouldUseCompactMode
-    ? { className: "size-8" }
-    : undefined;
+  const iconProps = compact ? { className: "size-8 sm:size-12" } : undefined;
 
-  if (shouldUseCompactMode) {
-    // Mobile: Horizontal scroll with fixed-width cards
+  if (compact) {
+    // Mobile base layout; switches to grid at sm+ with CSS only.
     return (
       <div className="w-full overflow-hidden">
-        <div className="flex items-stretch gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+        <div
+          className={cn(
+            "flex items-stretch gap-3 overflow-x-auto pb-2 -mx-4 px-4",
+            "sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5",
+            className,
+          )}
+        >
           {cards.map((card, index) => (
             <Card
               key={index}
@@ -58,8 +56,8 @@ export function ScrollableCards({
               Icon={card.Icon}
               iconProps={card.iconProps ?? iconProps}
               compact={true}
-              className="flex-shrink-0 h-full"
-              style={{ width: cardWidth }}
+              className="flex-shrink-0 h-full w-[var(--card-width)] sm:w-auto"
+              style={{ "--card-width": cardWidth } as CSSProperties}
             />
           ))}
         </div>
@@ -135,7 +133,7 @@ function Card({
       className={cn(
         "rounded-[10px] bg-white shadow-1 dark:bg-gray-dark",
         "box-border w-full h-full flex flex-col",
-        compact ? "p-3" : "p-6",
+        compact ? "p-3 sm:p-6" : "p-6",
         className,
       )}
       style={style}
@@ -145,7 +143,7 @@ function Card({
       <div
         className={cn(
           "flex items-end justify-between flex-1",
-          compact ? "mt-3" : "mt-6",
+          compact ? "mt-3 sm:mt-6" : "mt-6",
         )}
       >
         {/* Left side: Value and Label */}
@@ -153,7 +151,9 @@ function Card({
           <p
             className={cn(
               "font-bold text-dark dark:text-white leading-tight",
-              compact ? "text-base whitespace-nowrap" : "text-heading-6 mb-1.5",
+              compact
+                ? "text-base whitespace-nowrap sm:text-heading-6 sm:mb-1.5"
+                : "text-heading-6 mb-1.5",
             )}
             style={valueStyle}
           >
@@ -162,7 +162,9 @@ function Card({
           <p
             className={cn(
               "font-medium text-dark-6",
-              compact ? "text-[11px] mt-1 whitespace-nowrap" : "text-sm",
+              compact
+                ? "text-[11px] mt-1 whitespace-nowrap sm:text-sm sm:mt-0"
+                : "text-sm",
             )}
           >
             {label}
@@ -173,7 +175,9 @@ function Card({
         {!hideIndicator && (
           <div
             className={cn(
-              "flex items-center gap-1.5 font-medium text-sm",
+              compact
+                ? "flex items-center gap-1.5 font-medium text-xs sm:text-sm"
+                : "flex items-center gap-1.5 font-medium text-sm",
               isDecreasing ? "text-red" : "text-green",
             )}
             style={indicatorStyle}

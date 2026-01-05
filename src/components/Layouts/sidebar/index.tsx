@@ -13,7 +13,7 @@ import { useSidebarContext } from "./sidebar-context";
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
+  const { setIsOpen, isOpen, toggleSidebar } = useSidebarContext();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const toggleExpanded = (title: string) => {
@@ -44,9 +44,9 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile Overlay */}
-      {isMobile === true && isOpen && (
+      {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-300"
+          className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 hidden max-[849px]:block"
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
         />
@@ -55,32 +55,29 @@ export function Sidebar() {
       <aside
         className={cn(
           "max-w-[290px] overflow-hidden border-r border-gray-200 bg-white transition-[width] duration-200 ease-linear dark:border-gray-800 dark:bg-gray-dark",
-          isMobile === true ? "fixed bottom-0 top-0 z-50" : "sticky top-0 h-screen",
-          isOpen ? "w-full" : "w-0",
+          "max-[849px]:fixed max-[849px]:bottom-0 max-[849px]:top-0 max-[849px]:z-50",
+          "min-[850px]:sticky min-[850px]:top-0 min-[850px]:h-screen min-[850px]:w-full",
+          isOpen ? "max-[849px]:w-full max-[849px]:pointer-events-auto" : "max-[849px]:w-0 max-[849px]:pointer-events-none",
         )}
         aria-label="Main navigation"
-        aria-hidden={!isOpen}
       >
         <div className="flex h-full flex-col py-10 pl-[25px] pr-[7px]">
           <div className="relative pr-4.5">
             <Link
               href={"/"}
-              onClick={() => isMobile === true && toggleSidebar()}
               className="px-0 py-2.5 min-[850px]:py-0"
             >
               <Logo />
             </Link>
 
-            {isMobile === true && (
-              <button
-                onClick={toggleSidebar}
-                className="absolute left-3/4 right-4.5 top-1/2 -translate-y-1/2 text-right"
-              >
-                <span className="sr-only">Close Menu</span>
+            <button
+              onClick={toggleSidebar}
+              className="absolute left-3/4 right-4.5 top-1/2 -translate-y-1/2 text-right min-[850px]:hidden"
+            >
+              <span className="sr-only">Close Menu</span>
 
-                <ArrowLeftIcon className="ml-auto size-7" />
-              </button>
-            )}
+              <ArrowLeftIcon className="ml-auto size-7" />
+            </button>
           </div>
 
           {/* Navigation */}
@@ -117,9 +114,6 @@ export function Sidebar() {
                                 toggleExpanded(item.title);
                                 if (item.url) {
                                   router.push(item.url);
-                                  if (isMobile) {
-                                    toggleSidebar();
-                                  }
                                 }
                               }}
                             >
