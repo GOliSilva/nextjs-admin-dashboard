@@ -49,16 +49,74 @@ function getDataForGraph(
   limitCount = 500,
   callback,
 ) {
+  const normalizeStartOfDay = (value) => {
+    if (!value) {
+      return value;
+    }
+
+    if (value instanceof Date) {
+      const start = new Date(value);
+      start.setHours(0, 0, 0, 0);
+      return start;
+    }
+
+    if (typeof value === "string" || typeof value === "number") {
+      const start = new Date(value);
+      if (!Number.isNaN(start.getTime())) {
+        start.setHours(0, 0, 0, 0);
+        return start;
+      }
+    }
+
+    if (value && typeof value.toDate === "function") {
+      const start = value.toDate();
+      start.setHours(0, 0, 0, 0);
+      return start;
+    }
+
+    return value;
+  };
+
+  const normalizeEndOfDay = (value) => {
+    if (!value) {
+      return value;
+    }
+
+    if (value instanceof Date) {
+      const end = new Date(value);
+      end.setHours(23, 59, 59, 999);
+      return end;
+    }
+
+    if (typeof value === "string" || typeof value === "number") {
+      const end = new Date(value);
+      if (!Number.isNaN(end.getTime())) {
+        end.setHours(23, 59, 59, 999);
+        return end;
+      }
+    }
+
+    if (value && typeof value.toDate === "function") {
+      const end = value.toDate();
+      end.setHours(23, 59, 59, 999);
+      return end;
+    }
+
+    return value;
+  };
+
   const fetchData = async () => {
     try {
       const constraints = [orderBy("createdAt", "desc"), limit(limitCount)];
 
       if (dataInicial) {
-        constraints.push(where("createdAt", ">=", dataInicial));
+        const normalizedStart = normalizeStartOfDay(dataInicial);
+        constraints.push(where("createdAt", ">=", normalizedStart));
       }
 
       if (dataFinal) {
-        constraints.push(where("createdAt", "<=", dataFinal));
+        const normalizedEnd = normalizeEndOfDay(dataFinal);
+        constraints.push(where("createdAt", "<=", normalizedEnd));
       }
 
       const q = query(collection(db, "dadosEnergia"), ...constraints);
@@ -73,9 +131,11 @@ function getDataForGraph(
               : Number.parseFloat(rawValue ?? "");
           const createdAt = data.createdAt;
           const x =
-            createdAt && typeof createdAt.toDate === "function"
-              ? createdAt.toDate()
-              : createdAt;
+            createdAt && typeof createdAt.toMillis === "function"
+              ? createdAt.toMillis()
+              : createdAt && typeof createdAt.toDate === "function"
+                ? createdAt.toDate().getTime()
+                : createdAt;
 
           return {
             x,

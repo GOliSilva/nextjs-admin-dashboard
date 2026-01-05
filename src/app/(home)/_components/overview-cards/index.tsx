@@ -81,25 +81,25 @@ export function OverviewCardsGroup({ compact }: OverviewCardsGroupProps) {
         compact={compact}
         cards={[
           {
-            label: "TensAśo A",
+            label: "Tens\u00e3o A",
             value: "--",
             hideIndicator: true,
             iconName: "VoltageA" as const,
           },
           {
-            label: "TensAśo B",
+            label: "Tens\u00e3o B",
             value: "--",
             hideIndicator: true,
             iconName: "VoltageB" as const,
           },
           {
-            label: "TensAśo C",
+            label: "Tens\u00e3o C",
             value: "--",
             hideIndicator: true,
             iconName: "VoltageC" as const,
           },
           {
-            label: "PotA¦ncia",
+            label: "Pot\u00eancia",
             value: "-- W",
             hideIndicator: true,
             iconName: "Power" as const,
@@ -118,7 +118,7 @@ export function OverviewCardsGroup({ compact }: OverviewCardsGroupProps) {
 
   const cardsData = [
     {
-      label: "TensAśo A",
+      label: "Tens\u00e3o A",
       value: tensaoA.value,
       indicatorValue: tensaoA.indicatorValue,
       indicatorIsDecreasing: tensaoA.indicatorIsDecreasing,
@@ -127,7 +127,7 @@ export function OverviewCardsGroup({ compact }: OverviewCardsGroupProps) {
       iconName: "VoltageA" as const,
     },
     {
-      label: "TensAśo B",
+      label: "Tens\u00e3o B",
       value: tensaoB.value,
       indicatorValue: tensaoB.indicatorValue,
       indicatorIsDecreasing: tensaoB.indicatorIsDecreasing,
@@ -136,7 +136,7 @@ export function OverviewCardsGroup({ compact }: OverviewCardsGroupProps) {
       iconName: "VoltageB" as const,
     },
     {
-      label: "TensAśo C",
+      label: "Tens\u00e3o C",
       value: tensaoC.value,
       indicatorValue: tensaoC.indicatorValue,
       indicatorIsDecreasing: tensaoC.indicatorIsDecreasing,
@@ -145,7 +145,7 @@ export function OverviewCardsGroup({ compact }: OverviewCardsGroupProps) {
       iconName: "VoltageC" as const,
     },
     {
-      label: "PotA¦ncia",
+      label: "Pot\u00eancia",
       value: powerLabel,
       hideIndicator: true,
       iconName: "Power" as const,

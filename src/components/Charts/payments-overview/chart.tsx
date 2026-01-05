@@ -18,6 +18,43 @@ const Chart = dynamic(() => import("react-apexcharts"), {
 
 export function PaymentsOverviewChart({ series, colors }: PropsType) {
   const [isZoomEnabled, setIsZoomEnabled] = useState(false);
+  
+  // Verifica se há dados válidos nas séries
+  const hasData = series.some(s => s.data && s.data.length > 0);
+  
+  const timestamps = series
+    .flatMap((item) => item.data.map((point) => point.x))
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  const hasDatetimeX = timestamps.length > 0;
+  const rangeMs =
+    hasDatetimeX ? Math.max(...timestamps) - Math.min(...timestamps) : 0;
+  const labelOptions: Intl.DateTimeFormatOptions =
+    rangeMs >= 24 * 60 * 60 * 1000
+      ? { day: "2-digit", month: "2-digit" }
+      : { hour: "2-digit", minute: "2-digit" };
+  const formatDateTime = (value: string | number) => {
+    const numeric =
+      typeof value === "number" ? value : Number.parseFloat(value);
+    if (!Number.isFinite(numeric)) {
+      return String(value);
+    }
+    return new Date(numeric).toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+  const formatAxisLabel = (value: string | number) => {
+    const numeric =
+      typeof value === "number" ? value : Number.parseFloat(value);
+    if (!Number.isFinite(numeric)) {
+      return String(value);
+    }
+    return new Date(numeric).toLocaleString("pt-BR", labelOptions);
+  };
+  const formatTooltipX = (value: string | number) =>
+    hasDatetimeX ? formatDateTime(value) : String(value);
   const maxXTicks = 12;
   const dataPoints = series.reduce(
     (max, item) => Math.max(max, item.data.length),
@@ -98,9 +135,14 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
       marker: {
         show: true,
       },
+      x: {
+        show: true,
+        formatter: formatTooltipX,
+      },
     },
     xaxis: {
       tickAmount: xTickAmount,
+      type: hasDatetimeX ? "datetime" : "category",
       axisBorder: {
         show: false,
       },
@@ -110,6 +152,7 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
       labels: {
         rotate: -45,
         rotateAlways: true,
+        formatter: formatAxisLabel,
       },
     },
   };
@@ -120,38 +163,46 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
         isZoomEnabled ? "z-20 ring-2 ring-primary rounded-lg" : ""
       }`}
     >
-      {!isZoomEnabled && (
-        <button
-          type="button"
-          className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 text-xs font-semibold text-dark/80 backdrop-blur-[1px] min-[850px]:hidden"
-          onClick={() => setIsZoomEnabled(true)}
-        >
-          Toque para ativar o zoom
-        </button>
-      )}
-      <Chart options={options} series={series} type="area" height={310} />
-      {isZoomEnabled && (
-        <button
-          onClick={() => setIsZoomEnabled(false)}
-          className="absolute top-2 right-2 z-20 rounded-md bg-primary p-1.5 text-white shadow-lg transition-colors hover:bg-primary/90 min-[850px]:hidden"
-          aria-label="Sair do modo zoom"
-          type="button"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
+      {!hasData ? (
+        <div className="flex h-full items-center justify-center text-sm text-gray-500">
+          Carregando dados...
+        </div>
+      ) : (
+        <>
+          {!isZoomEnabled && (
+            <button
+              type="button"
+              className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 text-xs font-semibold text-dark/80 backdrop-blur-[1px] min-[850px]:hidden"
+              onClick={() => setIsZoomEnabled(true)}
+            >
+              Toque para ativar o zoom
+            </button>
+          )}
+          <Chart options={options} series={series} type="area" height={310} />
+          {isZoomEnabled && (
+            <button
+              onClick={() => setIsZoomEnabled(false)}
+              className="absolute top-2 right-2 z-20 rounded-md bg-primary p-1.5 text-white shadow-lg transition-colors hover:bg-primary/90 min-[850px]:hidden"
+              aria-label="Sair do modo zoom"
+              type="button"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
+        </>
       )}
     </div>
   );

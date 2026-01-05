@@ -29,25 +29,25 @@ export function InfoGeraisCards({ compact }: InfoGeraisCardsProps) {
 
   const cards = [
     {
-      label: "PotA¦ncia direta",
+      label: "Pot\u00eancia direta",
       value: formatPower(toNumber(data?.Pdir), "W"),
       hideIndicator: true,
       iconName: "PowerDirect" as const,
     },
     {
-      label: "PotA¦ncia reversa",
+      label: "Pot\u00eancia reversa",
       value: formatPower(toNumber(data?.Prev), "W"),
       hideIndicator: true,
       iconName: "PowerReverse" as const,
     },
     {
-      label: "PotA¦ncia reativa",
+      label: "Pot\u00eancia reativa",
       value: formatPower(toNumber(data?.Q), "Var"),
       hideIndicator: true,
       iconName: "PowerReactive" as const,
     },
     {
-      label: "PotA¦ncia complexa",
+      label: "Pot\u00eancia complexa",
       value: formatPower(toNumber(data?.S), "Va"),
       hideIndicator: true,
       iconName: "PowerComplex" as const,

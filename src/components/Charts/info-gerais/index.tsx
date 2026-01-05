@@ -1,9 +1,10 @@
+"use client";
+
 import { PeriodPicker } from "@/components/period-picker";
+import { getDataForGraph } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
-import {
-  getInfoGeraisPotenciaSeries,
-  type InfoGeraisPeriod,
-} from "@/services/info-gerais.services";
+import { useEffect, useState } from "react";
+import type { InfoGeraisPeriod } from "@/services/info-gerais.services";
 import { InfoGeraisLineChart } from "./chart";
 
 type PropsType = {
@@ -14,19 +15,62 @@ type PropsType = {
   compact?: boolean;
 };
 
-const normalizePeriod = (value?: string): InfoGeraisPeriod => {
-  return value === "diario" ? "diario" : "semanal";
+type SeriesItem = {
+  name: string;
+  data: { x: unknown; y: number }[];
 };
 
-export async function InfoGeraisPotenciaChart({
+const normalizePeriod = (value?: string): InfoGeraisPeriod => {
+  return value === "diario" || value === "diário" ? "diario" : "semanal";
+};
+
+const SERIES_CONFIG = [
+  { name: "Potência ativa", field: "Pdir" },
+  { name: "Potência reativa", field: "Q" },
+  { name: "Potência complexa", field: "S" },
+] as const;
+
+const getRangeForPeriod = (period: InfoGeraisPeriod) => {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(end.getDate() - (period === "semanal" ? 7 : 1));
+  return { start, end };
+};
+
+export function InfoGeraisPotenciaChart({
   timeFrame,
   className,
   sectionKey = "info_gerais_period",
-  title = "Pot\u00EAncias",
+  title = "Potências",
   compact,
 }: PropsType) {
   const period = normalizePeriod(timeFrame);
-  const series = await getInfoGeraisPotenciaSeries(period);
+  const [series, setSeries] = useState<SeriesItem[]>(() =>
+    SERIES_CONFIG.map((item) => ({ name: item.name, data: [] })),
+  );
+
+  useEffect(() => {
+    const { start, end } = getRangeForPeriod(period);
+    setSeries(SERIES_CONFIG.map((item) => ({ name: item.name, data: [] })));
+
+    const unsubscribes = SERIES_CONFIG.map((item, index) =>
+      getDataForGraph(item.field, start, end, 500, (points: { x: unknown; y: number }[]) => {
+        setSeries((prev) => {
+          const next = [...prev];
+          next[index] = { name: item.name, data: points };
+          return next;
+        });
+      }),
+    );
+
+    return () => {
+      unsubscribes.forEach((unsub) => {
+        if (typeof unsub === "function") {
+          unsub();
+        }
+      });
+    };
+  }, [period]);
 
   return (
     <div
@@ -56,7 +100,10 @@ export async function InfoGeraisPotenciaChart({
           <PeriodPicker
             defaultValue={period}
             sectionKey={sectionKey}
-            items={["semanal", "diario"]}
+            items={[
+              { value: "semanal", label: "semanal" },
+              { value: "diario", label: "diário" },
+            ]}
           />
         </div>
       </div>

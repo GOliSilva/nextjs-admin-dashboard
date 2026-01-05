@@ -18,6 +18,39 @@ const Chart = dynamic(() => import("react-apexcharts"), {
 
 export function InfoGeraisLineChart({ series, colors }: PropsType) {
   const [isZoomEnabled, setIsZoomEnabled] = useState(false);
+  const timestamps = series
+    .flatMap((item) => item.data.map((point) => point.x))
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  const hasDatetimeX = timestamps.length > 0;
+  const rangeMs =
+    hasDatetimeX ? Math.max(...timestamps) - Math.min(...timestamps) : 0;
+  const labelOptions: Intl.DateTimeFormatOptions =
+    rangeMs >= 24 * 60 * 60 * 1000
+      ? { day: "2-digit", month: "2-digit" }
+      : { hour: "2-digit", minute: "2-digit" };
+  const formatDateTime = (value: string | number) => {
+    const numeric =
+      typeof value === "number" ? value : Number.parseFloat(value);
+    if (!Number.isFinite(numeric)) {
+      return String(value);
+    }
+    return new Date(numeric).toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+  const formatAxisLabel = (value: string | number) => {
+    const numeric =
+      typeof value === "number" ? value : Number.parseFloat(value);
+    if (!Number.isFinite(numeric)) {
+      return String(value);
+    }
+    return new Date(numeric).toLocaleString("pt-BR", labelOptions);
+  };
+  const formatTooltipX = (value: string | number) =>
+    hasDatetimeX ? formatDateTime(value) : String(value);
   const maxXTicks = 12;
   const dataPoints = series.reduce(
     (max, item) => Math.max(max, item.data.length),
@@ -114,6 +147,10 @@ export function InfoGeraisLineChart({ series, colors }: PropsType) {
       marker: {
         show: true,
       },
+      x: {
+        show: true,
+        formatter: formatTooltipX,
+      },
       y: {
         formatter: (value, { seriesIndex, w }) => {
           const seriesName = w?.config?.series?.[seriesIndex]?.name;
@@ -124,11 +161,15 @@ export function InfoGeraisLineChart({ series, colors }: PropsType) {
     },
     xaxis: {
       tickAmount: xTickAmount,
+      type: hasDatetimeX ? "datetime" : "category",
       axisBorder: {
         show: false,
       },
       axisTicks: {
         show: false,
+      },
+      labels: {
+        formatter: formatAxisLabel,
       },
     },
   };
