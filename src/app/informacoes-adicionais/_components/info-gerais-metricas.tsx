@@ -1,36 +1,56 @@
+"use client";
+
+import { useFirebaseData } from "@/contexts/firebase-data-context";
 import { standardFormat } from "@/lib/format-number";
 import { cn } from "@/lib/utils";
-import { getInfoGeraisMetricas } from "@/services/info-gerais.services";
 
 type PropsType = {
   className?: string;
   compact?: boolean;
 };
 
-const formatMetric = (value: number, unit?: string) => {
+const toNumber = (value: unknown) => {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const numeric = Number.parseFloat(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+
+  return null;
+};
+
+const formatMetric = (value: number | null, unit?: string) => {
+  if (value === null) {
+    return unit ? `-- ${unit}` : "--";
+  }
+
   const formatted = standardFormat(value);
   return unit ? `${formatted} ${unit}` : formatted;
 };
 
-export async function InfoGeraisMetricas({ className, compact }: PropsType) {
-  const metricas = await getInfoGeraisMetricas();
+export function InfoGeraisMetricas({ className, compact }: PropsType) {
+  const { data } = useFirebaseData();
+  const dataRecord = data as Record<string, unknown> | null;
 
   const items = [
     {
       label: "Corrente de neutro",
-      value: formatMetric(metricas.correnteNeutro, "A"),
+      value: formatMetric(toNumber(data?.In), "A"),
     },
     {
       label: "Distor\u00E7\u00E3o harm\u00F4nica",
-      value: formatMetric(metricas.dht, "%"),
+      value: formatMetric(toNumber(dataRecord?.dht), "%"),
     },
     {
       label: "Fator de pot\u00EAncia total",
-      value: formatMetric(metricas.fatorPotenciaTotal),
+      value: formatMetric(toNumber(data?.fpt)),
     },
     {
       label: "Frequ\u00EAncia",
-      value: formatMetric(metricas.frequencia, "Hz"),
+      value: formatMetric(toNumber(data?.f), "Hz"),
     },
   ];
 

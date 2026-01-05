@@ -9,13 +9,14 @@ type CardDataWithoutIcon = Omit<CardData, "Icon"> & {
 
 type Props = {
   cards: CardDataWithoutIcon[];
+  compact?: boolean;
 };
 
-export function OverviewCardsClient({ cards }: Props) {
+export function OverviewCardsClient({ cards, compact }: Props) {
   const cardsWithIcons: CardData[] = cards.map((card) => ({
     ...card,
     Icon: icons[card.iconName],
   }));
 
-  return <ScrollableCards cards={cardsWithIcons} />;
+  return <ScrollableCards cards={cardsWithIcons} compact={compact} />;
 }

@@ -1,39 +1,54 @@
+"use client";
+
+import { useFirebaseData } from "@/contexts/firebase-data-context";
 import { standardFormat } from "@/lib/format-number";
-import { getInfoGeraisPotencias } from "@/services/info-gerais.services";
 import { InfoGeraisCardsClient } from "./info-gerais-cards-client";
 
-const formatPower = (value: number, unit: string) =>
-  `${standardFormat(value)} ${unit}`;
+const toNumber = (value: unknown) => {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const numeric = Number.parseFloat(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+
+  return null;
+};
+
+const formatPower = (value: number | null, unit: string) =>
+  value === null ? `-- ${unit}` : `${standardFormat(value)} ${unit}`;
 
 type InfoGeraisCardsProps = {
   compact?: boolean;
 };
 
-export async function InfoGeraisCards({ compact }: InfoGeraisCardsProps) {
-  const potencias = await getInfoGeraisPotencias();
+export function InfoGeraisCards({ compact }: InfoGeraisCardsProps) {
+  const { data } = useFirebaseData();
 
   const cards = [
     {
-      label: "Potência direta",
-      value: formatPower(potencias.direta, "W"),
+      label: "PotA¦ncia direta",
+      value: formatPower(toNumber(data?.Pdir), "W"),
       hideIndicator: true,
       iconName: "PowerDirect" as const,
     },
     {
-      label: "Potência reversa",
-      value: formatPower(potencias.reversa, "W"),
+      label: "PotA¦ncia reversa",
+      value: formatPower(toNumber(data?.Prev), "W"),
       hideIndicator: true,
       iconName: "PowerReverse" as const,
     },
     {
-      label: "Potência reativa",
-      value: formatPower(potencias.reativa, "Var"),
+      label: "PotA¦ncia reativa",
+      value: formatPower(toNumber(data?.Q), "Var"),
       hideIndicator: true,
       iconName: "PowerReactive" as const,
     },
     {
-      label: "Potência complexa",
-      value: formatPower(potencias.complexa, "Va"),
+      label: "PotA¦ncia complexa",
+      value: formatPower(toNumber(data?.S), "Va"),
       hideIndicator: true,
       iconName: "PowerComplex" as const,
     },
