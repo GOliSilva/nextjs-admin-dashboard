@@ -18,13 +18,103 @@ const Chart = dynamic(() => import("react-apexcharts"), {
 
 export function PaymentsOverviewChart({ series, colors }: PropsType) {
   const [isZoomEnabled, setIsZoomEnabled] = useState(false);
-  
-  // Verifica se há dados válidos nas séries
-  const hasData = series.some(s => s.data && s.data.length > 0);
-  
-  const timestamps = series
+
+  const normalizeX = (value: unknown) => {
+    if (value == null) {
+      return null;
+    }
+
+    if (typeof value === "number") {
+      if (!Number.isFinite(value)) {
+        return null;
+      }
+      return value > 1e14 ? Math.floor(value / 1000) : value;
+    }
+
+    if (value instanceof Date) {
+      const time = value.getTime();
+      return Number.isFinite(time) ? time : null;
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return null;
+      }
+
+      const numeric = Number.parseFloat(trimmed);
+      if (Number.isFinite(numeric) && /^[+-]?\d+(\.\d+)?$/.test(trimmed)) {
+        let normalized = numeric;
+        if (normalized > 1e14) {
+          normalized = Math.floor(normalized / 1000);
+        } else if (normalized < 1e12) {
+          normalized = normalized * 1000;
+        }
+        return normalized;
+      }
+
+      const parsed = new Date(trimmed).getTime();
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    if (typeof value === "object") {
+      const maybeTimestamp = value as {
+        toMillis?: () => number;
+        toDate?: () => Date;
+        seconds?: number;
+        nanoseconds?: number;
+      };
+
+      if (typeof maybeTimestamp.toMillis === "function") {
+        const time = maybeTimestamp.toMillis();
+        if (!Number.isFinite(time)) {
+          return null;
+        }
+        return time > 1e14 ? Math.floor(time / 1000) : time;
+      }
+
+      if (typeof maybeTimestamp.toDate === "function") {
+        const time = maybeTimestamp.toDate().getTime();
+        return Number.isFinite(time) ? time : null;
+      }
+
+      if (typeof maybeTimestamp.seconds === "number") {
+        const nanos =
+          typeof maybeTimestamp.nanoseconds === "number"
+            ? maybeTimestamp.nanoseconds
+            : 0;
+        return maybeTimestamp.seconds * 1000 + Math.floor(nanos / 1e6);
+      }
+    }
+
+    return null;
+  };
+
+  const normalizedSeries = series.map((item) => ({
+    ...item,
+    data: (item.data ?? [])
+      .map((point) => {
+        const xValue = normalizeX(point.x);
+        if (!Number.isFinite(xValue)) {
+          return null;
+        }
+
+        const yValue = Number.isFinite(point.y) ? point.y : 0;
+        return { x: xValue, y: yValue };
+      })
+      .filter((point): point is { x: number; y: number } => point !== null),
+  }));
+
+  const hasData = normalizedSeries.some(
+    (item) => item.data && item.data.length > 0,
+  );
+
+  const timestamps = normalizedSeries
     .flatMap((item) => item.data.map((point) => point.x))
-    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    .filter(
+      (value): value is number =>
+        typeof value === "number" && Number.isFinite(value),
+    );
   const hasDatetimeX = timestamps.length > 0;
   const rangeMs =
     hasDatetimeX ? Math.max(...timestamps) - Math.min(...timestamps) : 0;
@@ -33,8 +123,7 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
       ? { day: "2-digit", month: "2-digit" }
       : { hour: "2-digit", minute: "2-digit" };
   const formatDateTime = (value: string | number) => {
-    const numeric =
-      typeof value === "number" ? value : Number.parseFloat(value);
+    const numeric = typeof value === "number" ? value : Number.parseFloat(value);
     if (!Number.isFinite(numeric)) {
       return String(value);
     }
@@ -46,8 +135,7 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
     });
   };
   const formatAxisLabel = (value: string | number) => {
-    const numeric =
-      typeof value === "number" ? value : Number.parseFloat(value);
+    const numeric = typeof value === "number" ? value : Number.parseFloat(value);
     if (!Number.isFinite(numeric)) {
       return String(value);
     }
@@ -56,11 +144,12 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
   const formatTooltipX = (value: string | number) =>
     hasDatetimeX ? formatDateTime(value) : String(value);
   const maxXTicks = 12;
-  const dataPoints = series.reduce(
+  const dataPoints = normalizedSeries.reduce(
     (max, item) => Math.max(max, item.data.length),
     0,
   );
-  const xTickAmount = dataPoints > 0 ? Math.min(maxXTicks, dataPoints) : maxXTicks;
+  const xTickAmount =
+    dataPoints > 0 ? Math.min(maxXTicks, dataPoints) : maxXTicks;
 
   const options: ApexOptions = {
     legend: {
@@ -95,22 +184,6 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
         options: {
           stroke: {
             width: 2,
-          },
-        },
-      },
-      {
-        breakpoint: 1024,
-        options: {
-          chart: {
-            height: 300,
-          },
-        },
-      },
-      {
-        breakpoint: 1366,
-        options: {
-          chart: {
-            height: 320,
           },
         },
       },
@@ -159,8 +232,8 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
 
   return (
     <div
-      className={`-ml-4 -mr-5 h-[310px] relative transition-all ${
-        isZoomEnabled ? "z-20 ring-2 ring-primary rounded-lg" : ""
+      className={`-ml-4 h-[310px] relative transition-all ${
+        isZoomEnabled ? "z-20 rounded-lg" : ""
       }`}
     >
       {!hasData ? (
@@ -172,13 +245,16 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
           {!isZoomEnabled && (
             <button
               type="button"
-              className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 text-xs font-semibold text-dark/80 backdrop-blur-[1px] min-[850px]:hidden"
+              className="absolute inset-0 z-10 min-[850px]:hidden"
               onClick={() => setIsZoomEnabled(true)}
-            >
-              Toque para ativar o zoom
-            </button>
+            />
           )}
-          <Chart options={options} series={series} type="area" height={310} />
+          <Chart
+            options={options}
+            series={normalizedSeries}
+            type="area"
+            height={310}
+          />
           {isZoomEnabled && (
             <button
               onClick={() => setIsZoomEnabled(false)}

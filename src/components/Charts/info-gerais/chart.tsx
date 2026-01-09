@@ -116,14 +116,6 @@ export function InfoGeraisLineChart({ series, colors }: PropsType) {
           },
         },
       },
-      {
-        breakpoint: 1024,
-        options: {
-          chart: {
-            height: 300,
-          },
-        },
-      },
     ],
     markers: {
       size: 0,
@@ -176,18 +168,16 @@ export function InfoGeraisLineChart({ series, colors }: PropsType) {
 
   return (
     <div
-      className={`-ml-4 -mr-5 h-[320px] relative transition-all ${
-        isZoomEnabled ? "z-20 ring-2 ring-primary rounded-lg" : ""
+      className={`-ml-4 h-[320px] relative transition-all ${
+        isZoomEnabled ? "z-20 rounded-lg" : ""
       }`}
     >
       {!isZoomEnabled && (
         <button
           type="button"
-          className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 text-xs font-semibold text-dark/80 backdrop-blur-[1px] min-[850px]:hidden"
+          className="absolute inset-0 z-10 min-[850px]:hidden"
           onClick={() => setIsZoomEnabled(true)}
-        >
-          Toque para ativar o zoom
-        </button>
+        />
       )}
       <Chart options={options} series={series} type="line" height={320} />
       {isZoomEnabled && (

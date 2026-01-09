@@ -113,11 +113,15 @@
 }
 
 .apexcharts-tooltip-series-group {
-  @apply !pb-px !pl-2.5 !pr-3.5;
+  @apply !flex !items-center !gap-2 !pb-px !pl-2.5 !pr-3.5;
 }
 
 .apexcharts-tooltip-series-group .apexcharts-tooltip-text {
   @apply !text-base !font-medium;
+}
+
+.apexcharts-tooltip-marker {
+  @apply !inline-block !shrink-0;
 }
 
 .apexcharts-datalabels-group .apexcharts-datalabel-label {
