@@ -14,8 +14,6 @@ const toSeries = (source: Record<string, string>) => {
 };
 
 export async function getGeracaoSeries(period: GeracaoPeriod) {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   const key = period === "diario" ? "day" : "week";
 

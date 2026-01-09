@@ -1,8 +1,6 @@
 export async function getDevicesUsedData(
   timeFrame?: "monthly" | "yearly" | (string & {}),
 ) {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   const data = [
     {
@@ -40,8 +38,6 @@ export async function getDevicesUsedData(
 export async function getPaymentsOverviewData(
   timeFrame?: "monthly" | "yearly" | (string & {}),
 ) {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   if (timeFrame === "yearly" || timeFrame === "anual") {
     return {
@@ -141,8 +137,6 @@ export async function getPaymentsOverviewData(
 }
 
 export async function getWeeksProfitData(timeFrame?: string) {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   if (timeFrame === "last week") {
     return {
@@ -190,8 +184,6 @@ export async function getWeeksProfitData(timeFrame?: string) {
 }
 
 export async function getCampaignVisitorsData() {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return {
     total_visitors: 784_000,
@@ -209,8 +201,6 @@ export async function getCampaignVisitorsData() {
 }
 
 export async function getVisitorsAnalyticsData() {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return [
     168, 385, 201, 298, 187, 195, 291, 110, 215, 390, 280, 112, 123, 212, 270,

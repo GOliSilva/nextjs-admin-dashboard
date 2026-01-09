@@ -14,8 +14,6 @@ export type PhaseMetrics = keyof PhaseData;
 export type TimeFrame = "week" | "day";
 
 export async function getPhaseData(phase: PhaseType) {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
     return PHASE_DATA[phase];
 }
 

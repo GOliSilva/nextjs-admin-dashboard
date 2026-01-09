@@ -1,8 +1,6 @@
 import * as logos from "@/assets/logos";
 
 export async function getTopProducts() {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 2000));
 
   return [
     {
@@ -41,8 +39,6 @@ export async function getTopProducts() {
 }
 
 export async function getInvoiceTableData() {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1400));
 
   return [
     {
@@ -73,8 +69,6 @@ export async function getInvoiceTableData() {
 }
 
 export async function getTopChannels() {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1500));
 
   return [
     {

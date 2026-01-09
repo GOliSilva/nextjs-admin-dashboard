@@ -14,8 +14,6 @@ const toSeries = (source: Record<string, string>): SeriesPoint[] => {
 };
 
 export async function getConsumoSemanalData() {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   const thisWeek = toSeries(consumoSemanal);
   const lastWeek = thisWeek.map((point) => ({

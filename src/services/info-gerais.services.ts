@@ -24,8 +24,6 @@ const toSeries = (source: Record<string, string>): SeriesPoint[] => {
 };
 
 export async function getInfoGeraisPotencias() {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return {
     direta: parseNumber(potenciasData.direta),
@@ -36,8 +34,6 @@ export async function getInfoGeraisPotencias() {
 }
 
 export async function getInfoGeraisPotenciaSeries(period: InfoGeraisPeriod) {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   const key = period === "diario" ? "day" : "week";
 
@@ -58,8 +54,6 @@ export async function getInfoGeraisPotenciaSeries(period: InfoGeraisPeriod) {
 }
 
 export async function getInfoGeraisMetricas() {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return {
     correnteNeutro: parseNumber(metricasData.correnteNeutro),

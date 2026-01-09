@@ -31,8 +31,6 @@ const toSeries = (source: Record<string, string | undefined>) => {
 };
 
 export async function getConsumoPontaSeries(mode: ConsumoPontaMode) {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   const source = mode === "fora ponta" ? consumoForaPonta : consumoPonta;
 

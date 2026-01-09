@@ -15,8 +15,6 @@ const toSeries = (source: Record<string, string>) => {
 };
 
 export async function getConsumoPorFase(periodo: ConsumoFasePeriodo) {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   const source = periodo === "mensal" ? consumoMensal : consumoSemanal;
 

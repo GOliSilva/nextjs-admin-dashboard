@@ -49,8 +49,6 @@ const toSeries = (
 };
 
 export async function getConsumoPorFaseLinha(periodo: ConsumoPorFasePeriodo) {
-  // Fake delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   if (periodo === "diario") {
     return toSeries(consumoPorFaseLinha.diario, DAY_LABELS);
