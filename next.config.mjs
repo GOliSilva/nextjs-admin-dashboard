@@ -1,3 +1,5 @@
+import withSerwist from "@serwist/next";
+
 /** @type {import("next").NextConfig} */
 const nextConfig = {
   images: {
@@ -27,4 +29,10 @@ const nextConfig = {
   }
 };
 
-export default nextConfig;
+const withSerwistConfig = withSerwist({
+  swSrc: "src/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === "development",
+});
+
+export default withSerwistConfig(nextConfig);

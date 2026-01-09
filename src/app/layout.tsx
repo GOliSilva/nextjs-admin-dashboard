@@ -19,6 +19,15 @@ export const metadata: Metadata = {
   },
   description:
     "Next.js admin dashboard toolkit with 200+ templates, UI components, and integrations for fast dashboard development.",
+  applicationName: "NextAdmin",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/images/favicon.ico",
+  },
+};
+
+export const viewport = {
+  themeColor: "#0b1221",
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {

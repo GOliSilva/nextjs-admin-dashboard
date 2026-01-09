@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import alarmsData from "@/data/alarms.json";
 import dayjs from "dayjs";
 import Link from "next/link";
-import { useState, type SVGProps } from "react";
+import { useEffect, useState, type SVGProps } from "react";
 import { BellIcon } from "./icons";
 
 type AlarmPriority = "low" | "medium" | "high";
@@ -215,6 +215,9 @@ const getVariableIcon = (variableName: string) => {
 };
 
 export function Notification() {
+  const [permission, setPermission] = useState<
+    NotificationPermission | "unsupported"
+  >("default");
   const alarmList = (alarmsData as AlarmItem[])
     .slice()
     .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
@@ -222,6 +225,63 @@ export function Notification() {
   const unreadCount = alarmList.length;
   const [isOpen, setIsOpen] = useState(false);
   const [isDotVisible, setIsDotVisible] = useState(unreadCount > 0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!("Notification" in window)) {
+      setPermission("unsupported");
+      return;
+    }
+
+    setPermission(window.Notification.permission);
+  }, []);
+
+  const requestPermission = async () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!("Notification" in window)) {
+      setPermission("unsupported");
+      return;
+    }
+
+    const nextPermission = await window.Notification.requestPermission();
+    setPermission(nextPermission);
+  };
+
+  const sendTestNotification = async () => {
+    if (!("serviceWorker" in navigator)) {
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) {
+      return;
+    }
+
+    await registration.showNotification("Alarme de teste", {
+      body: "Notificacao local enviada pelo app.",
+      icon: "/images/logo/logo-icon.svg",
+      badge: "/images/logo/logo-icon.svg",
+      data: { url: "/alarms" },
+      tag: "alarm-test",
+    });
+  };
+
+  const permissionLabel =
+    permission === "unsupported"
+      ? "Notificacoes nao suportadas"
+      : permission === "granted"
+        ? "Notificacoes ativas"
+        : permission === "denied"
+          ? "Notificacoes bloqueadas"
+          : "Ative as notificacoes do navegador";
+  const canRequestPermission = permission === "default";
+  const canTestNotification = permission === "granted";
 
   return (
     <Dropdown
@@ -264,6 +324,30 @@ export function Notification() {
               {unreadCount} novos
             </span>
           )}
+        </div>
+
+        <div className="mb-3 rounded-lg border border-stroke px-2.5 py-2 text-xs text-dark-6 dark:border-dark-3 dark:text-dark-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>{permissionLabel}</span>
+            {canRequestPermission && (
+              <button
+                type="button"
+                onClick={requestPermission}
+                className="rounded-md border border-primary px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-blue-light-5 dark:border-dark-3 dark:text-dark-6 dark:hover:bg-dark-3"
+              >
+                Ativar
+              </button>
+            )}
+            {canTestNotification && (
+              <button
+                type="button"
+                onClick={sendTestNotification}
+                className="rounded-md border border-primary px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-blue-light-5 dark:border-dark-3 dark:text-dark-6 dark:hover:bg-dark-3"
+              >
+                Testar
+              </button>
+            )}
+          </div>
         </div>
 
         <ul className="mb-3 max-h-[23rem] space-y-1.5 overflow-y-auto">

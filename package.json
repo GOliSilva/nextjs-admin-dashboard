@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@serwist/next": "^9.0.0",
     "apexcharts": "^5.3.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -25,6 +26,7 @@
     "react-quill": "^2.0.0",
     "react-select": "^5.10.0",
     "react-table": "^7.8.0",
+    "serwist": "^9.0.0",
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
