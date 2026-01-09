@@ -22,7 +22,10 @@ export const metadata: Metadata = {
   applicationName: "NextAdmin",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/images/favicon.ico",
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
   },
 };
 
