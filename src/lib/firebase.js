@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps } from "firebase/app"
 import { getAuth } from "firebase/auth"
-import { getFirestore,onSnapshot,  collection, query, where,orderBy,  limit,  getDocs,addDoc,doc} from "firebase/firestore"
+import { getFirestore, onSnapshot, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore"
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,165 +11,354 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
-// Debug: verifica se as variáveis de ambiente estão carregadas
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-  console.error("⚠️ Firebase config incompleto:", firebaseConfig)
-  throw new Error("Firebase não configurado - verifique o arquivo .env.local")
+  console.error("Firebase config incompleto:", firebaseConfig)
+  throw new Error("Firebase nao configurado - verifique o arquivo .env.local")
 }
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
-
 const auth = getAuth(app)
 const db = getFirestore(app)
-function getMostRecentData(callback) {
-  try {
-    const q = query(collection(db, "dadosEnergia"), orderBy("createdAt", "desc"), limit(1));
 
-    const unsub = onSnapshot(q, (snap) => {
-      console.log("🔥 Snapshot recebido, docs:", snap.docs.length);
-      const doc = snap.docs[0];
-      const latest = doc ? { id: doc.id, ...doc.data() } : null;
-      console.log("📊 Dados mais recentes:", latest);
-      callback(latest);
-    }, (error) => {
-      console.error("❌ Erro no onSnapshot:", error);
-    });
+const DEVICES_COLLECTION = "devices"
+const DAILY_COLLECTION = "daily"
+const LEGACY_COLLECTION = "dadosEnergia"
+const DEFAULT_DEVICE_ID = process.env.NEXT_PUBLIC_DEVICE_ID ?? "device-unknown"
+const MAX_DOCS_PER_READ = 1000
+const GRAPH_POLLING_INTERVAL_MS = 60000
 
-    // Retorna a função de unsubscribe para poder parar de ouvir
-    return unsub;
-  } catch (error) {
-    console.error(error);
-    throw error;
+function resolveDeviceId(deviceId) {
+  const text = String(deviceId ?? "").trim()
+  if (!text) {
+    return DEFAULT_DEVICE_ID
+  }
+
+  const sanitized = text.replace(/[^A-Za-z0-9_-]/g, "")
+  return sanitized || DEFAULT_DEVICE_ID
+}
+
+function parsePositiveInteger(value) {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : Number.parseInt(String(value ?? ""), 10)
+
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return Math.floor(parsed)
+  }
+
+  return null
+}
+
+function normalizeStartOfDay(value) {
+  if (!value) {
+    return value
+  }
+
+  if (value instanceof Date) {
+    const start = new Date(value)
+    start.setHours(0, 0, 0, 0)
+    return start
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    const start = new Date(value)
+    if (!Number.isNaN(start.getTime())) {
+      start.setHours(0, 0, 0, 0)
+      return start
+    }
+  }
+
+  if (value && typeof value.toDate === "function") {
+    const start = value.toDate()
+    start.setHours(0, 0, 0, 0)
+    return start
+  }
+
+  return value
+}
+
+function normalizeEndOfDay(value) {
+  if (!value) {
+    return value
+  }
+
+  if (value instanceof Date) {
+    const end = new Date(value)
+    end.setHours(23, 59, 59, 999)
+    return end
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    const end = new Date(value)
+    if (!Number.isNaN(end.getTime())) {
+      end.setHours(23, 59, 59, 999)
+      return end
+    }
+  }
+
+  if (value && typeof value.toDate === "function") {
+    const end = value.toDate()
+    end.setHours(23, 59, 59, 999)
+    return end
+  }
+
+  return value
+}
+
+function toMillis(value) {
+  if (!value) {
+    return null
+  }
+
+  if (typeof value === "number") {
+    return value
+  }
+
+  if (value instanceof Date) {
+    const millis = value.getTime()
+    return Number.isNaN(millis) ? null : millis
+  }
+
+  if (typeof value === "string") {
+    const millis = new Date(value).getTime()
+    return Number.isNaN(millis) ? null : millis
+  }
+
+  if (typeof value.toMillis === "function") {
+    return value.toMillis()
+  }
+
+  if (typeof value.toDate === "function") {
+    const millis = value.toDate().getTime()
+    return Number.isNaN(millis) ? null : millis
+  }
+
+  return null
+}
+
+function subscribeLegacyLatest(callback) {
+  const q = query(collection(db, LEGACY_COLLECTION), orderBy("createdAt", "desc"), limit(1))
+
+  return onSnapshot(
+    q,
+    (snap) => {
+      const docSnap = snap.docs[0]
+      const latest = docSnap ? { id: docSnap.id, ...docSnap.data() } : null
+      callback(latest)
+    },
+    (error) => {
+      console.error(error)
+    },
+  )
+}
+
+function extractLatestReadingFromBucket(docSnap) {
+  if (!docSnap) {
+    return null
+  }
+
+  const data = docSnap.data() || {}
+  const readings = Array.isArray(data.readings) ? data.readings : []
+  if (readings.length === 0) {
+    return null
+  }
+
+  const latestReading = readings.reduce((latest, current) => {
+    const latestMs = toMillis(latest?.createdAt) ?? -1
+    const currentMs = toMillis(current?.createdAt) ?? -1
+    return currentMs > latestMs ? current : latest
+  }, readings[0])
+
+  const createdAtMs = toMillis(latestReading?.createdAt) ?? Date.now()
+  return {
+    id: `${docSnap.id}-${createdAtMs}`,
+    ...latestReading,
+    deviceId: data.deviceId,
   }
 }
+
+function getMostRecentData(callback, deviceId = DEFAULT_DEVICE_ID) {
+  try {
+    const dailyRef = collection(db, DEVICES_COLLECTION, resolveDeviceId(deviceId), DAILY_COLLECTION)
+    const q = query(dailyRef, orderBy("bucketStart", "desc"), limit(1))
+
+    let legacyUnsub = null
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const latest = extractLatestReadingFromBucket(snap.docs[0])
+        if (latest) {
+          if (typeof legacyUnsub === "function") {
+            legacyUnsub()
+            legacyUnsub = null
+          }
+          callback(latest)
+          return
+        }
+
+        if (legacyUnsub == null) {
+          legacyUnsub = subscribeLegacyLatest(callback)
+        }
+      },
+      (error) => {
+        console.error(error)
+        if (legacyUnsub == null) {
+          legacyUnsub = subscribeLegacyLatest(callback)
+        }
+      },
+    )
+
+    return () => {
+      unsub()
+      if (typeof legacyUnsub === "function") {
+        legacyUnsub()
+      }
+    }
+  } catch (error) {
+    console.error(error)
+    return subscribeLegacyLatest(callback)
+  }
+}
+
+function extractPointsFromBuckets(docs, variableName, startMs, endMs) {
+  const points = []
+
+  docs.forEach((docSnap) => {
+    const data = docSnap.data() || {}
+    const readings = Array.isArray(data.readings) ? data.readings : []
+
+    readings.forEach((reading) => {
+      const timestampMs = toMillis(reading?.createdAt)
+      if (timestampMs == null) {
+        return
+      }
+
+      if (startMs != null && timestampMs < startMs) {
+        return
+      }
+
+      if (endMs != null && timestampMs > endMs) {
+        return
+      }
+
+      const rawValue = reading?.[variableName]
+      const numeric = typeof rawValue === "number" ? rawValue : Number.parseFloat(rawValue ?? "")
+
+      points.push({
+        x: timestampMs,
+        y: Number.isFinite(numeric) ? numeric : 0,
+      })
+    })
+  })
+
+  return points.sort((a, b) => a.x - b.x)
+}
+
+async function getLegacyGraphData(variableName, startDate, endDate, limitCount) {
+  const constraints = [orderBy("createdAt", "desc"), limit(limitCount)]
+
+  if (startDate) {
+    constraints.push(where("createdAt", ">=", startDate))
+  }
+
+  if (endDate) {
+    constraints.push(where("createdAt", "<=", endDate))
+  }
+
+  const q = query(collection(db, LEGACY_COLLECTION), ...constraints)
+  const snap = await getDocs(q)
+
+  return snap.docs
+    .map((docSnap) => {
+      const data = docSnap.data() || {}
+      const rawValue = data[variableName]
+      const numeric = typeof rawValue === "number" ? rawValue : Number.parseFloat(rawValue ?? "")
+      const timestampMs = toMillis(data.createdAt)
+
+      return {
+        x: timestampMs,
+        y: Number.isFinite(numeric) ? numeric : 0,
+      }
+    })
+    .filter((point) => point.x != null)
+    .reverse()
+}
+
+function getBucketLimitForPoints(pointLimit) {
+  const estimatedPointsPerBucket = 60
+  const estimatedBuckets = Math.ceil(pointLimit / estimatedPointsPerBucket)
+  const safetyWindow = 4
+  const total = estimatedBuckets + safetyWindow
+
+  return Math.max(1, Math.min(MAX_DOCS_PER_READ, total))
+}
+
 function getDataForGraph(
   nameOfVariable = "Va",
   dataInicial,
   dataFinal,
   limitCount = 500,
   callback,
+  deviceId = DEFAULT_DEVICE_ID,
 ) {
-  const parsePositiveInteger = (value) => {
-    const parsed =
-      typeof value === "number"
-        ? value
-        : Number.parseInt(String(value ?? ""), 10);
-
-    if (Number.isFinite(parsed) && parsed > 0) {
-      return Math.floor(parsed);
-    }
-
-    return null;
-  };
-
-  const resolvedLimit =  2016;
-
-  const normalizeStartOfDay = (value) => {
-    if (!value) {
-      return value;
-    }
-
-    if (value instanceof Date) {
-      const start = new Date(value);
-      start.setHours(0, 0, 0, 0);
-      return start;
-    }
-
-    if (typeof value === "string" || typeof value === "number") {
-      const start = new Date(value);
-      if (!Number.isNaN(start.getTime())) {
-        start.setHours(0, 0, 0, 0);
-        return start;
-      }
-    }
-
-    if (value && typeof value.toDate === "function") {
-      const start = value.toDate();
-      start.setHours(0, 0, 0, 0);
-      return start;
-    }
-
-    return value;
-  };
-
-  const normalizeEndOfDay = (value) => {
-    if (!value) {
-      return value;
-    }
-
-    if (value instanceof Date) {
-      const end = new Date(value);
-      end.setHours(23, 59, 59, 999);
-      return end;
-    }
-
-    if (typeof value === "string" || typeof value === "number") {
-      const end = new Date(value);
-      if (!Number.isNaN(end.getTime())) {
-        end.setHours(23, 59, 59, 999);
-        return end;
-      }
-    }
-
-    if (value && typeof value.toDate === "function") {
-      const end = value.toDate();
-      end.setHours(23, 59, 59, 999);
-      return end;
-    }
-
-    return value;
-  };
+  const resolvedLimit = parsePositiveInteger(limitCount) ?? 500
+  const normalizedStart = normalizeStartOfDay(dataInicial)
+  const normalizedEnd = normalizeEndOfDay(dataFinal)
 
   const fetchData = async () => {
     try {
-      const constraints = [orderBy("createdAt", "desc"), limit(resolvedLimit)];
+      const dailyRef = collection(db, DEVICES_COLLECTION, resolveDeviceId(deviceId), DAILY_COLLECTION)
+      const constraints = [
+        orderBy("bucketStart", "desc"),
+        limit(getBucketLimitForPoints(resolvedLimit)),
+      ]
 
-      if (dataInicial) {
-        const normalizedStart = normalizeStartOfDay(dataInicial);
-        constraints.push(where("createdAt", ">=", normalizedStart));
+      if (normalizedStart) {
+        constraints.push(where("bucketStart", ">=", normalizedStart))
       }
 
-      if (dataFinal) {
-        const normalizedEnd = normalizeEndOfDay(dataFinal);
-        constraints.push(where("createdAt", "<=", normalizedEnd));
+      if (normalizedEnd) {
+        constraints.push(where("bucketStart", "<=", normalizedEnd))
       }
 
-      const q = query(collection(db, "dadosEnergia"), ...constraints);
-      const snap = await getDocs(q);
-      const points = snap.docs
-        .map((docSnap) => {
-          const data = docSnap.data() || {};
-          const rawValue = data[nameOfVariable];
-          const numeric =
-            typeof rawValue === "number"
-              ? rawValue
-              : Number.parseFloat(rawValue ?? "");
-          const createdAt = data.createdAt;
-          const x =
-            createdAt && typeof createdAt.toMillis === "function"
-              ? createdAt.toMillis()
-              : createdAt && typeof createdAt.toDate === "function"
-                ? createdAt.toDate().getTime()
-                : createdAt;
+      const q = query(dailyRef, ...constraints)
+      const snap = await getDocs(q)
 
-          return {
-            x,
-            y: Number.isFinite(numeric) ? numeric : 0,
-          };
-        })
-        .reverse();
+      const startMs = toMillis(normalizedStart)
+      const endMs = toMillis(normalizedEnd)
+
+      let points = extractPointsFromBuckets(snap.docs, nameOfVariable, startMs, endMs)
+
+      if (points.length === 0) {
+        points = await getLegacyGraphData(nameOfVariable, normalizedStart, normalizedEnd, resolvedLimit)
+      }
+
+      if (points.length > resolvedLimit) {
+        points = points.slice(-resolvedLimit)
+      }
 
       if (typeof callback === "function") {
-        callback(points);
+        callback(points)
       }
     } catch (error) {
-      console.error(error);
+      console.error(error)
+      try {
+        const points = await getLegacyGraphData(nameOfVariable, normalizedStart, normalizedEnd, resolvedLimit)
+        if (typeof callback === "function") {
+          callback(points)
+        }
+      } catch (legacyError) {
+        console.error(legacyError)
+      }
     }
-  };
+  }
 
-  fetchData();
-  const intervalId = setInterval(fetchData, 60000);
+  fetchData()
+  const intervalId = setInterval(fetchData, GRAPH_POLLING_INTERVAL_MS)
 
-  return () => clearInterval(intervalId);
+  return () => clearInterval(intervalId)
 }
-export { app, auth, db, getMostRecentData,getDataForGraph }
+
+export { app, auth, db, getMostRecentData, getDataForGraph }
