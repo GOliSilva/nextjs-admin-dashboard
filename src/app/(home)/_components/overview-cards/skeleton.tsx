@@ -15,9 +15,10 @@ export function OverviewCardsSkeleton({
     ? "min-w-[160px] shrink-0 sm:min-w-0"
     : undefined;
   const iconClassName = compact ? "size-10 sm:size-12" : "size-12";
-  const titleClassName = compact ? "h-6 w-16 sm:h-7" : "h-7 w-18";
-  const labelClassName = compact ? "h-4 w-18 sm:h-5" : "h-5 w-20";
-  const indicatorClassName = compact ? "h-4 w-12 sm:h-5" : "h-5 w-15";
+  const titleClassName = compact ? "h-6 w-28 sm:h-7" : "h-7 w-30";
+  const labelClassName = compact ? "h-4 w-22 sm:h-5" : "h-5 w-24";
+  const rowLabelClassName = compact ? "h-3 w-4 sm:h-4" : "h-4 w-5";
+  const rowValueClassName = compact ? "h-3 w-16 sm:h-4 sm:w-22" : "h-4 w-24";
 
   return (
     <div className={containerClassName}>
@@ -34,17 +35,31 @@ export function OverviewCardsSkeleton({
 
           <div
             className={cn(
-              "flex items-end justify-between",
+              "flex flex-col",
               compact ? "mt-4" : "mt-6",
             )}
           >
-            <div>
-              <Skeleton className={cn("mb-1.5", titleClassName)} />
-
-              <Skeleton className={labelClassName} />
-            </div>
-
-            <Skeleton className={indicatorClassName} />
+            {i === 0 ? (
+              <div>
+                <Skeleton className={cn("mb-1.5", titleClassName)} />
+                <Skeleton className={labelClassName} />
+              </div>
+            ) : (
+              <div className="w-full">
+                <Skeleton className={cn("mb-2", titleClassName)} />
+                <div className="space-y-1.5">
+                  {Array.from({ length: 3 }).map((__, rowIndex) => (
+                    <div
+                      key={rowIndex}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <Skeleton className={rowLabelClassName} />
+                      <Skeleton className={rowValueClassName} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ))}

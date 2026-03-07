@@ -4,9 +4,6 @@ import { useFirebaseData } from "@/contexts/firebase-data-context";
 import { standardFormat } from "@/lib/format-number";
 import { OverviewCardsClient } from "./cards-client";
 
-const BASE_VOLTAGE = 220;
-const MAX_DEVIATION_RATIO = 0.1;
-
 const toNumber = (value: unknown) => {
   if (typeof value === "number") {
     return value;
@@ -20,56 +17,22 @@ const toNumber = (value: unknown) => {
   return null;
 };
 
-const getVoltageColor = (value: number) => {
-  const ratio = Math.abs(value - BASE_VOLTAGE) / BASE_VOLTAGE;
-  const clamped = Math.min(ratio, MAX_DEVIATION_RATIO);
-  const hue = 120 - (clamped / MAX_DEVIATION_RATIO) * 120;
-
-  return `hsl(${hue} 80% 40%)`;
-};
-
-const formatVoltage = (rawValue: unknown) => {
+const formatMetric = (rawValue: unknown, unit: string) => {
   const numeric = toNumber(rawValue);
-
   if (numeric === null) {
-    return {
-      value: "--",
-      indicatorValue: "--",
-      indicatorIsDecreasing: false,
-      indicatorStyle: undefined,
-      hideIndicator: true,
-    };
+    return "--";
   }
-
-  const percent = (numeric / BASE_VOLTAGE) * 100;
-
-  return {
-    value: `${numeric.toFixed(2)} V`,
-    indicatorValue: `${percent.toFixed(1)}%`,
-    indicatorIsDecreasing: numeric < BASE_VOLTAGE,
-    indicatorStyle: { color: getVoltageColor(numeric) },
-    hideIndicator: false,
-  };
+  return `${standardFormat(numeric)} ${unit}`;
 };
+
+const buildPhaseRows = (values: [unknown, unknown, unknown], unit: string) => [
+  { label: "A", value: formatMetric(values[0], unit) },
+  { label: "B", value: formatMetric(values[1], unit) },
+  { label: "C", value: formatMetric(values[2], unit) },
+];
 
 type OverviewCardsGroupProps = {
   compact?: boolean;
-};
-
-const getPowerValue = (data: Record<string, unknown> | null) => {
-  const directPower = toNumber(data?.Pdir);
-  if (directPower !== null) {
-    return directPower;
-  }
-
-  const phasePowers = [toNumber(data?.Pa), toNumber(data?.Pb), toNumber(data?.Pc)]
-    .filter((value) => value !== null) as number[];
-
-  if (phasePowers.length > 0) {
-    return phasePowers.reduce((total, value) => total + value, 0);
-  }
-
-  return null;
 };
 
 export function OverviewCardsGroup({ compact }: OverviewCardsGroupProps) {
@@ -81,26 +44,41 @@ export function OverviewCardsGroup({ compact }: OverviewCardsGroupProps) {
         compact={compact}
         cards={[
           {
-            label: "Tens\u00e3o A",
-            value: "--",
+            label: "Energia total do mês",
+            value: "-- kWh",
             hideIndicator: true,
-            iconName: "VoltageA" as const,
+            iconName: "PowerComplex" as const,
           },
           {
-            label: "Tens\u00e3o B",
+            label: "Tensões",
             value: "--",
+            rows: [
+              { label: "A", value: "--" },
+              { label: "B", value: "--" },
+              { label: "C", value: "--" },
+            ],
             hideIndicator: true,
-            iconName: "VoltageB" as const,
+            iconName: "Voltage" as const,
           },
           {
-            label: "Tens\u00e3o C",
+            label: "Correntes",
             value: "--",
+            rows: [
+              { label: "A", value: "--" },
+              { label: "B", value: "--" },
+              { label: "C", value: "--" },
+            ],
             hideIndicator: true,
-            iconName: "VoltageC" as const,
+            iconName: "Current" as const,
           },
           {
-            label: "Pot\u00eancia",
-            value: "-- W",
+            label: "Potências",
+            value: "--",
+            rows: [
+              { label: "A", value: "--" },
+              { label: "B", value: "--" },
+              { label: "C", value: "--" },
+            ],
             hideIndicator: true,
             iconName: "Power" as const,
           },
@@ -109,44 +87,39 @@ export function OverviewCardsGroup({ compact }: OverviewCardsGroupProps) {
     );
   }
 
-  const tensaoA = formatVoltage(data.Va);
-  const tensaoB = formatVoltage(data.Vb);
-  const tensaoC = formatVoltage(data.Vc);
-  const powerValue = getPowerValue(data as Record<string, unknown>);
-  const powerLabel =
-    powerValue === null ? "-- W" : `${standardFormat(powerValue)} W`;
+  const energyValues = [toNumber(data.Ea), toNumber(data.Eb), toNumber(data.Ec)].filter(
+    (value): value is number => value !== null,
+  );
+  const totalEnergy =
+    energyValues.length === 0
+      ? "-- kWh"
+      : `${standardFormat(energyValues.reduce((sum, value) => sum + value, 0))} kWh`;
 
   const cardsData = [
     {
-      label: "Tens\u00e3o A",
-      value: tensaoA.value,
-      indicatorValue: tensaoA.indicatorValue,
-      indicatorIsDecreasing: tensaoA.indicatorIsDecreasing,
-      indicatorStyle: tensaoA.indicatorStyle,
-      hideIndicator: tensaoA.hideIndicator,
-      iconName: "VoltageA" as const,
+      label: "Energia total do mês",
+      value: totalEnergy,
+      hideIndicator: true,
+      iconName: "PowerComplex" as const,
     },
     {
-      label: "Tens\u00e3o B",
-      value: tensaoB.value,
-      indicatorValue: tensaoB.indicatorValue,
-      indicatorIsDecreasing: tensaoB.indicatorIsDecreasing,
-      indicatorStyle: tensaoB.indicatorStyle,
-      hideIndicator: tensaoB.hideIndicator,
-      iconName: "VoltageB" as const,
+      label: "Tensões",
+      value: "--",
+      rows: buildPhaseRows([data.Va, data.Vb, data.Vc], "V"),
+      hideIndicator: true,
+      iconName: "Voltage" as const,
     },
     {
-      label: "Tens\u00e3o C",
-      value: tensaoC.value,
-      indicatorValue: tensaoC.indicatorValue,
-      indicatorIsDecreasing: tensaoC.indicatorIsDecreasing,
-      indicatorStyle: tensaoC.indicatorStyle,
-      hideIndicator: tensaoC.hideIndicator,
-      iconName: "VoltageC" as const,
+      label: "Correntes",
+      value: "--",
+      rows: buildPhaseRows([data.Ia, data.Ib, data.Ic], "A"),
+      hideIndicator: true,
+      iconName: "Current" as const,
     },
     {
-      label: "Pot\u00eancia",
-      value: powerLabel,
+      label: "Potências",
+      value: "--",
+      rows: buildPhaseRows([data.Pa, data.Pb, data.Pc], "W"),
       hideIndicator: true,
       iconName: "Power" as const,
     },

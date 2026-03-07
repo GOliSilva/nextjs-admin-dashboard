@@ -81,7 +81,12 @@ const PHASE_FIELDS: Record<PhaseType, Record<PhaseMetrics, string>> = {
 const getRangeForTimeFrame = (timeFrame: TimeFrame) => {
   const end = new Date();
   const start = new Date(end);
-  start.setDate(end.getDate() - (timeFrame === "week" ? 7 : 1));
+  if (timeFrame === "week") {
+    start.setDate(end.getDate() - 6);
+  }
+
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
   return { start, end };
 };
 

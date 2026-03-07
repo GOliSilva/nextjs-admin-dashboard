@@ -33,7 +33,12 @@ const SERIES_CONFIG = [
 const getRangeForPeriod = (period: InfoGeraisPeriod) => {
   const end = new Date();
   const start = new Date(end);
-  start.setDate(end.getDate() - (period === "semanal" ? 7 : 1));
+  if (period === "semanal") {
+    start.setDate(end.getDate() - 6);
+  }
+
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
   return { start, end };
 };
 

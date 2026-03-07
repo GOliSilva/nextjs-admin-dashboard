@@ -49,6 +49,21 @@ function getDataForGraph(
   limitCount = 500,
   callback,
 ) {
+  const parsePositiveInteger = (value) => {
+    const parsed =
+      typeof value === "number"
+        ? value
+        : Number.parseInt(String(value ?? ""), 10);
+
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return Math.floor(parsed);
+    }
+
+    return null;
+  };
+
+  const resolvedLimit =  2016;
+
   const normalizeStartOfDay = (value) => {
     if (!value) {
       return value;
@@ -107,7 +122,7 @@ function getDataForGraph(
 
   const fetchData = async () => {
     try {
-      const constraints = [orderBy("createdAt", "desc"), limit(limitCount)];
+      const constraints = [orderBy("createdAt", "desc"), limit(resolvedLimit)];
 
       if (dataInicial) {
         const normalizedStart = normalizeStartOfDay(dataInicial);

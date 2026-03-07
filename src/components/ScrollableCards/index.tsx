@@ -3,9 +3,16 @@
 import { cn } from "@/lib/utils";
 import type { CSSProperties, JSX, SVGProps } from "react";
 
+export type CardRow = {
+  label: string;
+  value: string;
+  valueStyle?: CSSProperties;
+};
+
 export type CardData = {
   label: string;
   value: number | string;
+  rows?: CardRow[];
   growthRate?: number;
   valueStyle?: CSSProperties;
   indicatorValue?: string;
@@ -47,6 +54,7 @@ export function ScrollableCards({
               key={index}
               label={card.label}
               value={card.value}
+              rows={card.rows}
               growthRate={card.growthRate ?? 0}
               valueStyle={card.valueStyle}
               indicatorValue={card.indicatorValue}
@@ -78,6 +86,7 @@ export function ScrollableCards({
           key={index}
           label={card.label}
           value={card.value}
+          rows={card.rows}
           growthRate={card.growthRate ?? 0}
           valueStyle={card.valueStyle}
           indicatorValue={card.indicatorValue}
@@ -97,6 +106,7 @@ export function ScrollableCards({
 type CardProps = {
   label: string;
   value: number | string;
+  rows?: CardRow[];
   growthRate: number;
   valueStyle?: CSSProperties;
   indicatorValue?: string;
@@ -113,6 +123,7 @@ type CardProps = {
 function Card({
   label,
   value,
+  rows,
   growthRate,
   valueStyle,
   indicatorValue,
@@ -127,6 +138,7 @@ function Card({
 }: CardProps) {
   const isDecreasing = indicatorIsDecreasing ?? growthRate < 0;
   const indicator = indicatorValue ?? `${growthRate}%`;
+  const hasRows = Array.isArray(rows) && rows.length > 0;
 
   return (
     <div
@@ -142,37 +154,71 @@ function Card({
 
       <div
         className={cn(
-          "flex items-end justify-between flex-1",
+          "flex justify-between flex-1",
+          hasRows ? "items-start" : "items-end",
           compact ? "mt-3 sm:mt-6" : "mt-6",
         )}
       >
         {/* Left side: Value and Label */}
         <div className="flex-1 min-w-0 pr-2">
-          <p
-            className={cn(
-              "font-bold text-dark dark:text-white leading-tight",
-              compact
-                ? "text-base whitespace-nowrap sm:text-heading-6 sm:mb-1.5"
-                : "text-heading-6 mb-1.5",
-            )}
-            style={valueStyle}
-          >
-            {value}
-          </p>
-          <p
-            className={cn(
-              "font-medium text-dark-6",
-              compact
-                ? "text-[11px] mt-1 whitespace-nowrap sm:text-sm sm:mt-0"
-                : "text-sm",
-            )}
-          >
-            {label}
-          </p>
+          {hasRows ? (
+            <>
+              <p
+                className={cn(
+                  "font-bold text-dark dark:text-white leading-tight",
+                  compact ? "text-sm sm:text-base" : "text-base",
+                )}
+              >
+                {label}
+              </p>
+              <div className={cn("mt-2 space-y-1", compact ? "text-[11px] sm:text-sm" : "text-sm")}>
+                {rows.map((row, index) => (
+                  <div
+                    key={`${row.label}-${index}`}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <span className="font-medium text-dark-6 dark:text-dark-6">
+                      {row.label}
+                    </span>
+                    <span
+                      className="truncate font-semibold text-dark dark:text-white"
+                      style={row.valueStyle}
+                    >
+                      {row.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <p
+                className={cn(
+                  "font-bold text-dark dark:text-white leading-tight",
+                  compact
+                    ? "text-base whitespace-nowrap sm:text-heading-6 sm:mb-1.5"
+                    : "text-heading-6 mb-1.5",
+                )}
+                style={valueStyle}
+              >
+                {value}
+              </p>
+              <p
+                className={cn(
+                  "font-medium text-dark-6",
+                  compact
+                    ? "text-[11px] mt-1 whitespace-nowrap sm:text-sm sm:mt-0"
+                    : "text-sm",
+                )}
+              >
+                {label}
+              </p>
+            </>
+          )}
         </div>
 
         {/* Right side: Indicator */}
-        {!hideIndicator && (
+        {!hideIndicator && !hasRows && (
           <div
             className={cn(
               compact
