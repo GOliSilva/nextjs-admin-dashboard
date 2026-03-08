@@ -4,7 +4,6 @@ export const apexSeriesAnimationPreset: NonNullable<
   NonNullable<ApexOptions["chart"]>["animations"]
 > = {
   enabled: true,
-  easing: "linear",
   speed: 1,
   animateGradually: {
     enabled: false,
