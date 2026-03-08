@@ -2,7 +2,8 @@
 
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
+import { useEffect, useState } from "react";
 
 type PropsType = {
   series: {
@@ -18,6 +19,7 @@ const Chart = dynamic(() => import("react-apexcharts"), {
 
 export function PaymentsOverviewChart({ series, colors }: PropsType) {
   const [isZoomEnabled, setIsZoomEnabled] = useState(false);
+  const [enableSeriesTransitions, setEnableSeriesTransitions] = useState(false);
 
   const normalizeX = (value: unknown) => {
     if (value == null) {
@@ -109,6 +111,21 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
     (item) => item.data && item.data.length > 0,
   );
 
+  useEffect(() => {
+    if (!hasData) {
+      setEnableSeriesTransitions(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setEnableSeriesTransitions(true);
+    }, 500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [hasData]);
+
   const timestamps = normalizedSeries
     .flatMap((item) => item.data.map((point) => point.x))
     .filter(
@@ -159,6 +176,13 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
     chart: {
       height: 310,
       type: "area",
+      animations: {
+        ...apexSeriesAnimationPreset,
+        dynamicAnimation: {
+          ...apexSeriesAnimationPreset.dynamicAnimation,
+          enabled: enableSeriesTransitions,
+        },
+      },
       toolbar: {
         show: false,
       },

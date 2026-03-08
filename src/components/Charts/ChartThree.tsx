@@ -2,6 +2,7 @@ import { ApexOptions } from "apexcharts";
 import React from "react";
 import ReactApexChart from "react-apexcharts";
 import DefaultSelectOption from "@/components/SelectOption/DefaultSelectOption";
+import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
 
 const ChartThree: React.FC = () => {
   const series = [65, 34, 12, 56];
@@ -10,6 +11,7 @@ const ChartThree: React.FC = () => {
     chart: {
       fontFamily: "Satoshi, sans-serif",
       type: "donut",
+      animations: apexSeriesAnimationPreset,
     },
     colors: ["#5750F1", "#5475E5", "#8099EC", "#ADBCF2"],
     labels: ["Desktop", "Tablet", "Mobile", "Unknown"],

@@ -1,8 +1,8 @@
 "use client";
 
 import { SearchIcon } from "@/assets/icons";
-import InputGroup from "@/components/FormElements/InputGroup";
 import { PaymentsOverviewChart } from "@/components/Charts/payments-overview/chart";
+import InputGroup from "@/components/FormElements/InputGroup";
 import {
   Table,
   TableBody,
@@ -11,12 +11,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useFirebaseData } from "@/contexts/firebase-data-context";
 import { getDataForGraph } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { HistoricoContainer } from "./historico-container";
-import { useFirebaseData } from "@/contexts/firebase-data-context";
 
 type HistoricoItem = {
   id: string;
@@ -108,12 +108,13 @@ const VARIABLE_UNITS: Record<string, string> = {
   angIc: "°",
 };
 
+const ERROR_TOAST_DURATION_MS = 1500;
+
 const getVariableLabel = (key: string) => VARIABLE_LABELS[key] ?? key;
 const getVariableUnit = (key: string) => VARIABLE_UNITS[key] ?? "";
+
 const parseDateInput = (value: string) => {
-  if (!value) {
-    return undefined;
-  }
+  if (!value) return undefined;
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     const [year, month, day] = value.split("-").map(Number);
@@ -134,6 +135,9 @@ export function HistoricoView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [startDateInput, setStartDateInput] = useState("");
   const [endDateInput, setEndDateInput] = useState("");
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [errorModalMessage, setErrorModalMessage] = useState("");
+  const [errorToastProgress, setErrorToastProgress] = useState(100);
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
   const [resultsKey, setResultsKey] = useState(0);
@@ -142,9 +146,7 @@ export function HistoricoView() {
   const hasVariableFilter = filters.query.trim().length > 0;
 
   const variableOptions = useMemo<VariableOption[]>(() => {
-    if (!data) {
-      return [];
-    }
+    if (!data) return [];
 
     return Object.keys(data)
       .filter((key) => key !== "createdAt" && key !== "id")
@@ -154,13 +156,12 @@ export function HistoricoView() {
 
   const suggestions = useMemo(() => {
     const normalizedQuery = searchTerm.trim().toLowerCase();
-    if (!normalizedQuery) {
-      return variableOptions;
-    }
+    if (!normalizedQuery) return variableOptions;
 
-    return variableOptions.filter((option) =>
-      option.label.toLowerCase().includes(normalizedQuery) ||
-      option.value.toLowerCase().includes(normalizedQuery),
+    return variableOptions.filter(
+      (option) =>
+        option.label.toLowerCase().includes(normalizedQuery) ||
+        option.value.toLowerCase().includes(normalizedQuery),
     );
   }, [searchTerm, variableOptions]);
 
@@ -173,6 +174,12 @@ export function HistoricoView() {
         option.value.toLowerCase() === normalized ||
         option.label.toLowerCase() === normalized,
     );
+  };
+
+  const closeErrorModal = () => {
+    setIsErrorModalOpen(false);
+    setErrorModalMessage("");
+    setErrorToastProgress(100);
   };
 
   const applyFilters = (queryOverride?: string, labelOverride?: string) => {
@@ -190,32 +197,83 @@ export function HistoricoView() {
     setResultsKey((prev) => prev + 1);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSuggestionsOpen(false);
-    applyFilters();
-  };
-
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setSearchTerm(value);
     setIsSuggestionsOpen(value.trim().length > 0);
+    if (isErrorModalOpen) closeErrorModal();
+  };
+
+  const validateDateRange = () => {
+    if (!startDateInput || !endDateInput) {
+      return "Preencha data inicial e data final antes de pesquisar.";
+    }
+
+    const startBoundary = parseDateInput(startDateInput);
+    const endBoundary = parseDateInput(endDateInput);
+
+    if (!startBoundary || !endBoundary) {
+      return "As datas informadas são inválidas.";
+    }
+
+    if (endBoundary.getTime() <= startBoundary.getTime()) {
+      return "A data final deve ser maior que a data inicial.";
+    }
+
+    return null;
+  };
+
+  const validateVariable = () => {
+    const rawQuery = searchTerm.trim();
+    if (!rawQuery) {
+      return "Selecione uma variável válida antes de pesquisar.";
+    }
+
+    const resolvedOption = resolveOption(rawQuery);
+    if (!resolvedOption) {
+      return "Selecione uma variável válida antes de pesquisar.";
+    }
+
+    return null;
   };
 
   const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Enter") {
+    if (event.key !== "Enter") return;
+
+    (event.target as HTMLElement | null)?.blur();
+    if (suggestions.length > 0) {
+      event.preventDefault();
+      setSearchTerm(suggestions[0].label);
+      setIsSuggestionsOpen(false);
+    }
+  };
+
+  const handleSearchButtonClick = () => {
+    setIsSuggestionsOpen(false);
+
+    const variableValidationError = validateVariable();
+    if (variableValidationError) {
+      setIsErrorModalOpen(true);
+      setErrorModalMessage(variableValidationError);
       return;
     }
 
-    (event.target as HTMLElement | null)?.blur();
-
-    if (suggestions.length > 0) {
-      event.preventDefault();
-      const selected = suggestions[0];
-      setSearchTerm(selected.label);
-      setIsSuggestionsOpen(false);
-      applyFilters(selected.value, selected.label);
+    const dateValidationError = validateDateRange();
+    if (dateValidationError) {
+      setIsErrorModalOpen(true);
+      setErrorModalMessage(dateValidationError);
+      return;
     }
+
+    const resolvedOption = resolveOption(searchTerm.trim());
+    if (!resolvedOption) {
+      setIsErrorModalOpen(true);
+      setErrorModalMessage("Selecione uma variável válida antes de pesquisar.");
+      return;
+    }
+
+    closeErrorModal();
+    applyFilters(resolvedOption.value, resolvedOption.label);
   };
 
   useEffect(() => {
@@ -260,27 +318,43 @@ export function HistoricoView() {
     );
 
     return () => {
-      if (typeof unsubscribe === "function") {
-        unsubscribe();
-      }
+      if (typeof unsubscribe === "function") unsubscribe();
     };
   }, [filters.query, filters.startDate, filters.endDate]);
 
-  const filteredHistory = useMemo(() => {
-    if (!hasVariableFilter) {
-      return [];
-    }
+  useEffect(() => {
+    if (!isErrorModalOpen) return;
 
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeErrorModal();
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [isErrorModalOpen]);
+
+  useEffect(() => {
+    if (!isErrorModalOpen) return;
+
+    setErrorToastProgress(100);
+    const frameId = requestAnimationFrame(() => setErrorToastProgress(0));
+    const timeoutId = setTimeout(closeErrorModal, ERROR_TOAST_DURATION_MS);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      clearTimeout(timeoutId);
+    };
+  }, [isErrorModalOpen]);
+
+  const filteredHistory = useMemo(() => {
+    if (!hasVariableFilter) return [];
     return [...historyItems].sort((a, b) => b.time - a.time);
   }, [historyItems, hasVariableFilter]);
 
   const chartSeries = useMemo(() => {
-    if (!hasVariableFilter || historyItems.length === 0) {
-      return [];
-    }
+    if (!hasVariableFilter || historyItems.length === 0) return [];
 
     const sorted = [...historyItems].sort((a, b) => a.time - b.time);
-
     return [
       {
         name: getVariableLabel(filters.query),
@@ -290,9 +364,7 @@ export function HistoricoView() {
   }, [filters.query, hasVariableFilter, historyItems]);
 
   const stats = useMemo(() => {
-    if (!hasVariableFilter || filteredHistory.length === 0) {
-      return null;
-    }
+    if (!hasVariableFilter || filteredHistory.length === 0) return null;
 
     const [first] = filteredHistory;
     let maxItem = first;
@@ -301,12 +373,8 @@ export function HistoricoView() {
 
     filteredHistory.forEach((item) => {
       sum += item.value;
-      if (item.value > maxItem.value) {
-        maxItem = item;
-      }
-      if (item.value < minItem.value) {
-        minItem = item;
-      }
+      if (item.value > maxItem.value) maxItem = item;
+      if (item.value < minItem.value) minItem = item;
     });
 
     return {
@@ -329,8 +397,8 @@ export function HistoricoView() {
   return (
     <HistoricoContainer>
       <div className="border-b border-stroke pb-6 dark:border-dark-3">
-        <form
-          onSubmit={handleSubmit}
+        <div
+          data-historico-filters
           className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5"
         >
           <div
@@ -360,18 +428,14 @@ export function HistoricoView() {
                         onClick={(event) => {
                           setSearchTerm(option.label);
                           setIsSuggestionsOpen(false);
-                          applyFilters(option.value, option.label);
                           (event.currentTarget as HTMLElement)
-                            .closest("form")
-                            ?.querySelector<HTMLInputElement>(
-                              "input[type='search']",
-                            )
+                            .closest("[data-historico-filters]")
+                            ?.querySelector<HTMLInputElement>("input[type='search']")
                             ?.blur();
                         }}
                         className={cn(
                           "w-full px-4 py-2 text-left text-dark hover:bg-gray-100 dark:text-white dark:hover:bg-dark-2",
-                          option.label.toLowerCase() ===
-                            searchTerm.trim().toLowerCase() &&
+                          option.label.toLowerCase() === searchTerm.trim().toLowerCase() &&
                             "bg-gray-100 dark:bg-dark-2",
                         )}
                       >
@@ -388,27 +452,36 @@ export function HistoricoView() {
             label="Data inicial"
             type="date"
             placeholder="AAAA-MM-DD"
+            required
             value={startDateInput}
-            handleChange={(event) => setStartDateInput(event.target.value)}
+            handleChange={(event) => {
+              setStartDateInput(event.target.value);
+              if (isErrorModalOpen) closeErrorModal();
+            }}
           />
 
           <InputGroup
             label="Data final"
             type="date"
             placeholder="AAAA-MM-DD"
+            required
             value={endDateInput}
-            handleChange={(event) => setEndDateInput(event.target.value)}
+            handleChange={(event) => {
+              setEndDateInput(event.target.value);
+              if (isErrorModalOpen) closeErrorModal();
+            }}
           />
 
           <div className="flex items-end">
             <button
-              type="submit"
+              type="button"
+              onClick={handleSearchButtonClick}
               className="h-[46px] w-full rounded-lg bg-primary px-6 font-medium text-white hover:bg-opacity-90"
             >
               Pesquisar
             </button>
           </div>
-        </form>
+        </div>
       </div>
 
       <div
@@ -464,28 +537,19 @@ export function HistoricoView() {
               <TableBody>
                 {!hasVariableFilter ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={3}
-                      className="py-6 text-center text-dark-5 dark:text-dark-6"
-                    >
+                    <TableCell colSpan={3} className="py-6 text-center text-dark-5 dark:text-dark-6">
                       Selecione uma variavel para pesquisar.
                     </TableCell>
                   </TableRow>
                 ) : isLoading ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={3}
-                      className="py-6 text-center text-dark-5 dark:text-dark-6"
-                    >
+                    <TableCell colSpan={3} className="py-6 text-center text-dark-5 dark:text-dark-6">
                       Carregando dados...
                     </TableCell>
                   </TableRow>
                 ) : filteredHistory.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={3}
-                      className="py-6 text-center text-dark-5 dark:text-dark-6"
-                    >
+                    <TableCell colSpan={3} className="py-6 text-center text-dark-5 dark:text-dark-6">
                       Nenhum dado encontrado para o periodo.
                     </TableCell>
                   </TableRow>
@@ -505,10 +569,7 @@ export function HistoricoView() {
                     return (
                       <TableRow
                         key={item.id}
-                        className={cn(
-                          "border-[#eee] dark:border-dark-3",
-                          highlightClass,
-                        )}
+                        className={cn("border-[#eee] dark:border-dark-3", highlightClass)}
                       >
                         <TableCell>
                           <span className="font-medium text-dark dark:text-white">
@@ -536,9 +597,7 @@ export function HistoricoView() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
-            <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
-              Maior valor
-            </p>
+            <p className="text-sm font-medium text-dark-5 dark:text-dark-6">Maior valor</p>
             <p className="mt-2 text-xl font-bold text-dark dark:text-white">
               {stats ? formatValue(stats.maxItem.value, stats.unit) : "--"}
             </p>
@@ -548,9 +607,7 @@ export function HistoricoView() {
           </div>
 
           <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
-            <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
-              Menor valor
-            </p>
+            <p className="text-sm font-medium text-dark-5 dark:text-dark-6">Menor valor</p>
             <p className="mt-2 text-xl font-bold text-dark dark:text-white">
               {stats ? formatValue(stats.minItem.value, stats.unit) : "--"}
             </p>
@@ -560,30 +617,63 @@ export function HistoricoView() {
           </div>
 
           <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
-            <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
-              Total acumulado
-            </p>
+            <p className="text-sm font-medium text-dark-5 dark:text-dark-6">Total acumulado</p>
             <p className="mt-2 text-xl font-bold text-dark dark:text-white">
               {stats ? formatValue(stats.sum, stats.unit) : "--"}
             </p>
-            <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
-              Periodo selecionado
-            </p>
+            <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">Periodo selecionado</p>
           </div>
 
           <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
-            <p className="text-sm font-medium text-dark-5 dark:text-dark-6">
-              Media
-            </p>
+            <p className="text-sm font-medium text-dark-5 dark:text-dark-6">Media</p>
             <p className="mt-2 text-xl font-bold text-dark dark:text-white">
               {stats ? formatValue(stats.avg, stats.unit) : "--"}
             </p>
-            <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
-              Periodo selecionado
-            </p>
+            <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">Periodo selecionado</p>
           </div>
         </div>
       </div>
+
+      {isErrorModalOpen ? (
+        <div className="fixed bottom-4 right-4 z-[999] w-[min(92vw,320px)]">
+          <div
+            role="alertdialog"
+            aria-labelledby="historico-modal-title"
+            className="rounded-xl border border-[#F3B5B5] bg-[#FFF1F1] p-3.5 shadow-1 dark:border-[#7A2A2A] dark:bg-[#2A1212]"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3
+                  id="historico-modal-title"
+                  className="text-sm font-semibold text-[#7A1212] dark:text-[#FFB3B3]"
+                >
+                  Pesquisa invalida
+                </h3>
+                <p className="mt-1 text-xs text-[#8D2C2C] dark:text-[#FFCACA]">
+                  {errorModalMessage}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeErrorModal}
+                className="inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-[#E3A0A0] bg-[#FFD9D9] text-sm font-bold text-[#8D2C2C] hover:bg-[#FECACA] dark:border-[#8D3A3A] dark:bg-[#3A1D1D] dark:text-[#FFB3B3]"
+                aria-label="Fechar aviso"
+              >
+                X
+              </button>
+            </div>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#F8CACA] dark:bg-[#4A2323]">
+              <div
+                className="h-full rounded-full bg-[#D74848] transition-[width] ease-linear dark:bg-[#F47A7A]"
+                style={{
+                  width: `${errorToastProgress}%`,
+                  transitionDuration: `${ERROR_TOAST_DURATION_MS}ms`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </HistoricoContainer>
   );
 }

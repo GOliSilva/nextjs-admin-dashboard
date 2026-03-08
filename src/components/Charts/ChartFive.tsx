@@ -1,6 +1,7 @@
 import { ApexOptions } from "apexcharts";
 import React from "react";
 import ReactApexChart from "react-apexcharts";
+import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
 
 const ChartFive: React.FC = () => {
   const series = [
@@ -16,6 +17,7 @@ const ChartFive: React.FC = () => {
       fontFamily: "Satoshi, sans-serif",
       type: "bar",
       height: 200,
+      animations: apexSeriesAnimationPreset,
       toolbar: {
         show: false,
       },

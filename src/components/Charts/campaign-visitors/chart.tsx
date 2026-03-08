@@ -2,6 +2,7 @@
 
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
+import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
 
 type PropsType = {
   data: {
@@ -21,6 +22,7 @@ export function CampaignVisitorsChart({ data }: PropsType) {
       fontFamily: "Satoshi, sans-serif",
       type: "bar",
       height: 200,
+      animations: apexSeriesAnimationPreset,
       toolbar: {
         show: false,
       },

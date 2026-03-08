@@ -2,6 +2,7 @@
 
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
+import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
 
 type PropsType = {
   data: {
@@ -20,6 +21,7 @@ export function WeeksProfitChart({ data }: PropsType) {
     chart: {
       type: "bar",
       stacked: false,
+      animations: apexSeriesAnimationPreset,
       toolbar: {
         show: false,
       },

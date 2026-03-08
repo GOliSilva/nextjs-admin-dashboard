@@ -2,6 +2,7 @@
 
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
+import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
 import { useState } from "react";
 
 type PropsType = {
@@ -90,6 +91,7 @@ export function InfoGeraisLineChart({ series, colors }: PropsType) {
     chart: {
       height: 320,
       type: "line",
+      animations: apexSeriesAnimationPreset,
       toolbar: {
         show: false,
       },

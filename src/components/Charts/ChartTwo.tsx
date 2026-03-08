@@ -2,6 +2,7 @@ import { ApexOptions } from "apexcharts";
 import React from "react";
 import ReactApexChart from "react-apexcharts";
 import DefaultSelectOption from "@/components/SelectOption/DefaultSelectOption";
+import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
 
 const ChartTwo: React.FC = () => {
   const series = [
@@ -22,6 +23,7 @@ const ChartTwo: React.FC = () => {
       type: "bar",
       height: 335,
       stacked: true,
+      animations: apexSeriesAnimationPreset,
       toolbar: {
         show: false,
       },

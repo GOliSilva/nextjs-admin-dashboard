@@ -40,6 +40,20 @@ export const NAV_DATA: NavSection[] = [
         items: [],
       },
       {
+        title: "Par\u00e2metros El\u00e9tricos",
+        url: "/parametros-eletricos",
+        icon: Icons.Table,
+        description: "Valores mais recentes de todas as vari\u00e1veis el\u00e9tricas.",
+        items: [],
+      },
+      {
+        title: "Fasores",
+        url: "/fasores",
+        icon: Icons.ChartLine,
+        description: "Diagramas fasoriais com dados mais recentes.",
+        items: [],
+      },
+      {
         title: "Trif\u00e1sico",
         icon: Icons.Layers,
         description: "Vis\u00e3o consolidada das tr\u00eas fases.",

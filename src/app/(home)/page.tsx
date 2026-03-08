@@ -1,12 +1,10 @@
-import { Suspense } from "react";
-import { OverviewCardsGroup } from "@/app/(home)/_components/overview-cards";
-import { OverviewCardsSkeleton } from "@/app/(home)/_components/overview-cards/skeleton";
 import { GraficosChart } from "@/app/graficos/_components/graficos-chart";
+import { OverviewLiveStrip } from "@/app/(home)/_components/overview-live-strip";
 import type { Metadata } from "next";
 import { createTimeFrameExtractor } from "@/utils/timeframe-extractor";
 
 export const metadata: Metadata = {
-  title: "Visao geral",
+  title: "Visão Geral",
 };
 
 type Props = {
@@ -21,13 +19,11 @@ export default async function Home({ searchParams }: Props) {
 
   return (
     <div className="flex flex-col gap-4 md:gap-6 2xl:gap-7.5">
-      <Suspense fallback={<OverviewCardsSkeleton compact />}>
-        <OverviewCardsGroup compact />
-      </Suspense>
+      <OverviewLiveStrip />
 
       <div className="grid gap-4 sm:grid-cols-2 md:gap-6 2xl:gap-7.5">
         <GraficosChart
-          title="Tensao"
+          title="Tensão"
           metric="tensao"
           timeFrame={extractTimeFrame("graficos_tensao")?.split(":")[1]}
           sectionKey="graficos_tensao"
@@ -41,14 +37,14 @@ export default async function Home({ searchParams }: Props) {
           compact
         />
         <GraficosChart
-          title="Fator de potencia"
+          title="Fator de potência"
           metric="fator_potencia"
           timeFrame={extractTimeFrame("graficos_fator_potencia")?.split(":")[1]}
           sectionKey="graficos_fator_potencia"
           compact
         />
         <GraficosChart
-          title="Potencia"
+          title="Potência"
           metric="potencia"
           timeFrame={extractTimeFrame("graficos_potencia")?.split(":")[1]}
           sectionKey="graficos_potencia"

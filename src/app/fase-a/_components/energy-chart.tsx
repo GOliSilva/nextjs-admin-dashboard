@@ -2,6 +2,7 @@
 
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
+import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
 
 const Chart = dynamic(() => import("react-apexcharts"), {
     ssr: false,
@@ -19,6 +20,7 @@ export function EnergyChart({ categories, anoAtual, anoAnterior }: PropsType) {
         chart: {
             type: "bar",
             stacked: false,
+            animations: apexSeriesAnimationPreset,
             toolbar: {
                 show: false,
             },

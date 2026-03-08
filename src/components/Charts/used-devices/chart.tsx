@@ -3,6 +3,7 @@
 import { compactFormat } from "@/lib/format-number";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
+import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
 
 type PropsType = {
   data: { name: string; amount: number }[];
@@ -17,6 +18,7 @@ export function DonutChart({ data }: PropsType) {
     chart: {
       type: "donut",
       fontFamily: "inherit",
+      animations: apexSeriesAnimationPreset,
     },
     colors: ["#0ABEF9", "#22C55E", "#F59E0B"],
     labels: data.map((item) => item.name),

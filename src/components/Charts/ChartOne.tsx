@@ -2,6 +2,7 @@ import { ApexOptions } from "apexcharts";
 import React from "react";
 import ReactApexChart from "react-apexcharts";
 import DefaultSelectOption from "@/components/SelectOption/DefaultSelectOption";
+import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
 
 const ChartOne: React.FC = () => {
   const series = [
@@ -42,6 +43,7 @@ const ChartOne: React.FC = () => {
       fontFamily: "Satoshi, sans-serif",
       height: 310,
       type: "area",
+      animations: apexSeriesAnimationPreset,
       toolbar: {
         show: false,
       },
