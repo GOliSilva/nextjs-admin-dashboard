@@ -74,6 +74,7 @@ const GROUPS: GroupConfig[] = [
       { key: "Prev", label: "Reativa total", description: "Potência reativa total", unit: "var" },
       { key: "Q", label: "Aparente total", description: "Potência aparente total", unit: "var" },
       { key: "S", label: "Total", description: "Potência total", unit: "VA" },
+      { key: "Ph", label: "Harmônica", description: "Potência harmônica", unit: "W" },
     ],
   },
   {
@@ -81,7 +82,6 @@ const GROUPS: GroupConfig[] = [
     title: "Fator de potência",
     subtitle: "Fator de potência por fase e consolidado",
     metrics: [
-      { key: "Ph", label: "Total", description: "Fator de potência total" },
       { key: "fpa", label: "Fase A", description: "Fator de potência da fase A" },
       { key: "fpb", label: "Fase B", description: "Fator de potência da fase B" },
       { key: "fpc", label: "Fase C", description: "Fator de potência da fase C" },
@@ -99,6 +99,22 @@ const GROUPS: GroupConfig[] = [
     ],
   },
   {
+    id: "energia-reativa",
+    title: "Energia Reativa",
+    subtitle: "Energia reativa e reversa acumulada",
+    metrics: [
+      { key: "Ear", label: "Ear", description: "Energia reativa A", unit: "kVArh" },
+      { key: "Ebr", label: "Ebr", description: "Energia reativa B", unit: "kVArh" },
+      { key: "Ecr", label: "Ecr", description: "Energia reativa C", unit: "kVArh" },
+      { key: "Era", label: "Era", description: "Energia reversa A", unit: "kVArh" },
+      { key: "Erb", label: "Erb", description: "Energia reversa B", unit: "kVArh" },
+      { key: "Erc", label: "Erc", description: "Energia reversa C", unit: "kVArh" },
+      { key: "Erar", label: "Erar", description: "Energia reversa reativa A", unit: "kVArh" },
+      { key: "Erbr", label: "Erbr", description: "Energia reversa reativa B", unit: "kVArh" },
+      { key: "Ercr", label: "Ercr", description: "Energia reversa reativa C", unit: "kVArh" },
+    ],
+  },
+  {
     id: "gerais",
     title: "Gerais",
     subtitle: "Variáveis complementares do sistema",
@@ -108,6 +124,18 @@ const GROUPS: GroupConfig[] = [
     ],
   },
 ];
+
+const RESERVED_NON_METRIC_KEYS = new Set([
+  "id",
+  "createdAt",
+  "eventAt",
+  "deviceId",
+  "deviceName",
+]);
+
+const KNOWN_METRIC_KEYS = new Set(
+  GROUPS.flatMap((group) => group.metrics.map((metric) => metric.key)),
+);
 
 function toNumber(value: unknown) {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
@@ -176,13 +204,55 @@ export function ParametrosEletricosView() {
     return () => clearInterval(intervalId);
   }, []);
 
-  const latestData = (data ?? {}) as Record<string, unknown>;
+  const latestData = useMemo(() => (data ?? {}) as Record<string, unknown>, [data]);
   const updatedLabel = formatRelativeTime(toMillis(data?.createdAt), nowMs, isLoading);
 
+  const dynamicOtherGroup = useMemo<GroupConfig | null>(() => {
+    const metrics = Object.entries(latestData)
+      .filter(([key]) => !KNOWN_METRIC_KEYS.has(key) && !RESERVED_NON_METRIC_KEYS.has(key))
+      .map(([key, value]) => ({ key, value: toNumber(value) }))
+      .filter((item) => item.value != null)
+      .sort((a, b) => a.key.localeCompare(b.key, "pt-BR"))
+      .map<MetricConfig>((item) => ({
+        key: item.key,
+        label: item.key,
+        description: "Campo numérico adicional do payload",
+      }));
+
+    if (metrics.length === 0) {
+      return null;
+    }
+
+    return {
+      id: "outros",
+      title: "Outros",
+      subtitle: "Campos numéricos adicionais do payload",
+      metrics,
+    };
+  }, [latestData]);
+
+  const groupsToRender = useMemo(() => {
+    if (!dynamicOtherGroup) {
+      return GROUPS;
+    }
+    return [...GROUPS, dynamicOtherGroup];
+  }, [dynamicOtherGroup]);
+
   const visibleGroups = useMemo(() => {
-    if (activeGroupId === "all") return GROUPS;
-    return GROUPS.filter((group) => group.id === activeGroupId);
-  }, [activeGroupId]);
+    if (activeGroupId === "all") return groupsToRender;
+    return groupsToRender.filter((group) => group.id === activeGroupId);
+  }, [activeGroupId, groupsToRender]);
+
+  useEffect(() => {
+    if (activeGroupId === "all") {
+      return;
+    }
+
+    const exists = groupsToRender.some((group) => group.id === activeGroupId);
+    if (!exists) {
+      setActiveGroupId("all");
+    }
+  }, [activeGroupId, groupsToRender]);
 
   return (
     <div className="flex flex-col gap-4 md:gap-6 2xl:gap-7.5">
@@ -220,7 +290,7 @@ export function ParametrosEletricosView() {
             Todos
           </button>
 
-          {GROUPS.map((group) => (
+          {groupsToRender.map((group) => (
             <button
               key={group.id}
               type="button"

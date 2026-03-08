@@ -2,6 +2,7 @@
 
 import { PeriodPicker } from "@/components/period-picker";
 import { PaymentsOverviewChart } from "@/components/Charts/payments-overview/chart";
+import { useDeviceSelection } from "@/contexts/device-selection-context";
 import { getDataForGraph } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -98,6 +99,7 @@ export function PhaseChart({
   className,
   compact,
 }: PropsType) {
+  const { selectedDeviceId } = useDeviceSelection();
   const metricKey = METRIC_MAP[metric ?? ""] ?? "corrente";
   const resolvedMetricLabel = METRIC_LABELS[metricKey] ?? "Corrente";
   const timeFrameKey = TIME_FRAME_MAP[timeFrame ?? ""] ?? "day";
@@ -148,6 +150,7 @@ export function PhaseChart({
             return next;
           });
         },
+        selectedDeviceId,
       ),
     );
 
@@ -158,7 +161,7 @@ export function PhaseChart({
         }
       });
     };
-  }, [metricKey, timeFrameKey, phasesToRender.join(","), resolvedMetricLabel]);
+  }, [metricKey, timeFrameKey, phasesToRender.join(","), resolvedMetricLabel, selectedDeviceId]);
 
   const phaseColors: Record<PhaseType, string> = {
     A: "#5750F1",

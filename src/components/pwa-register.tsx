@@ -5,6 +5,16 @@ import { useEffect } from "react";
 export function PwaRegister() {
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then((registrations) => {
+            registrations.forEach((registration) => {
+              registration.unregister().catch(() => {});
+            });
+          })
+          .catch(() => {});
+      }
       return;
     }
 

@@ -18,7 +18,7 @@ DAILY_COLLECTION = "daily"
 WEEKLY_COLLECTION = "weekly"
 STATE_COLLECTION = "state"
 
-ALLOWED_FIELDS = {
+WEEKLY_SUMMABLE_FIELDS = {
     "Va",  # tensao de fase A
     "Vb",  # tensao de fase B
     "Vc",  # tensao de fase C
@@ -36,7 +36,7 @@ ALLOWED_FIELDS = {
     "Prev",  # potencia reativa total
     "Q",  # potencia aparente total
     "S",  # potencia total
-    "Ph",  # fator de potencia total
+    "Ph",  # potencia harmonica
     "fpa",  # fator de potencia de fase A
     "fpb",  # fator de potencia de fase B
     "fpc",  # fator de potencia de fase C
@@ -49,6 +49,38 @@ ALLOWED_FIELDS = {
     "Ea",  # energia ativa de fase A
     "Eb",  # energia ativa de fase B
     "Ec",  # energia ativa de fase C
+    "Ear",  # energia reativa fase A
+    "Ebr",  # energia reativa fase B
+    "Ecr",  # energia reativa fase C
+    "Era",  # energia reversa fase A
+    "Erb",  # energia reversa fase B
+    "Erc",  # energia reversa fase C
+    "Erar",  # energia reversa reativa fase A
+    "Erbr",  # energia reversa reativa fase B
+    "Ercr",  # energia reversa reativa fase C
+}
+
+CT_PT_SCALED_FIELDS = {
+    "Pa",
+    "Pb",
+    "Pc",
+    "Pdir",
+    "Prev",
+    "Q",
+    "S",
+    "Ph",
+    "Ea",
+    "Eb",
+    "Ec",
+    "Ear",
+    "Ebr",
+    "Ecr",
+    "Era",
+    "Erb",
+    "Erc",
+    "Erar",
+    "Erbr",
+    "Ercr",
 }
 
 
@@ -71,18 +103,37 @@ def _parse_payload(raw_payload: Any):
         if not value:
             return {}
 
-        try:
-            return json.loads(value)
-        except json.JSONDecodeError:
-            # Accept payload serialized as Python dict (single quotes)
+        candidates = [value]
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+            unwrapped = value[1:-1].strip()
+            if unwrapped:
+                candidates.append(unwrapped)
+
+        for candidate in candidates:
             try:
-                parsed = ast.literal_eval(value)
+                parsed = json.loads(candidate)
                 if isinstance(parsed, dict):
                     return parsed
+                if isinstance(parsed, str):
+                    nested = _parse_payload(parsed)
+                    if isinstance(nested, dict):
+                        return nested
+            except json.JSONDecodeError:
+                pass
+
+            # Accept payload serialized as Python dict (single quotes)
+            try:
+                parsed = ast.literal_eval(candidate)
+                if isinstance(parsed, dict):
+                    return parsed
+                if isinstance(parsed, str):
+                    nested = _parse_payload(parsed)
+                    if isinstance(nested, dict):
+                        return nested
             except (SyntaxError, ValueError):
                 pass
 
-            return {"rawPayload": value}
+        return {"rawPayload": value}
 
     return {"rawPayload": raw_payload}
 
@@ -108,6 +159,13 @@ def _extract_measurements(raw_payload):
     return parsed
 
 
+def _to_json_log(value: Any) -> str:
+    try:
+        return json.dumps(value, ensure_ascii=False, default=str)
+    except TypeError:
+        return str(value)
+
+
 def _coerce_numbers(data: dict) -> dict:
     coerced = {}
 
@@ -129,14 +187,47 @@ def _only_numeric_fields(data: dict) -> dict:
     numeric_data = {}
 
     for key, value in data.items():
-        if key not in ALLOWED_FIELDS:
-            continue
         if isinstance(value, bool):
             continue
         if isinstance(value, (int, float)):
             numeric_data[key] = float(value)
 
     return numeric_data
+
+
+def _valid_ratio_or_default(value: Any, default: float = 1.0) -> float:
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, (int, float)):
+        ratio = float(value)
+        if ratio > 0:
+            return ratio
+    return default
+
+
+def _apply_ct_pt_scaling(payload_numeric: dict) -> dict:
+    rtc_ratio = _valid_ratio_or_default(payload_numeric.get("RTC"), default=1.0)
+    rtp_ratio = _valid_ratio_or_default(payload_numeric.get("RTP"), default=1.0)
+    scaling_factor = rtc_ratio * rtp_ratio
+
+    if scaling_factor == 1.0:
+        return payload_numeric
+
+    scaled_payload = dict(payload_numeric)
+    for key in CT_PT_SCALED_FIELDS:
+        value = scaled_payload.get(key)
+        if isinstance(value, (int, float)):
+            scaled_payload[key] = float(value) * scaling_factor
+
+    return scaled_payload
+
+
+def _only_weekly_summable_fields(data: dict) -> dict:
+    return {
+        key: value
+        for key, value in data.items()
+        if key in WEEKLY_SUMMABLE_FIELDS and isinstance(value, (int, float))
+    }
 
 
 def _coerce_event_time(value):
@@ -187,6 +278,10 @@ def _normalize_device_id(value: Any) -> str:
 
 
 def _extract_device_id(measurements: dict) -> str:
+    name_candidate = _normalize_device_id(measurements.get("Nome"))
+    if name_candidate != DEFAULT_DEVICE_ID:
+        return name_candidate
+
     candidates = (
         "deviceId",
         "device_id",
@@ -196,10 +291,21 @@ def _extract_device_id(measurements: dict) -> str:
     )
 
     for key in candidates:
-        if key in measurements:
-            return _normalize_device_id(measurements.get(key))
+        if key not in measurements:
+            continue
+        candidate = _normalize_device_id(measurements.get(key))
+        if candidate != DEFAULT_DEVICE_ID:
+            return candidate
 
     return DEFAULT_DEVICE_ID
+
+
+def _extract_device_name(measurements: dict) -> str | None:
+    name = measurements.get("Nome")
+    if name is None:
+        return None
+    text = str(name).strip()
+    return text if text else None
 
 
 def _hour_bucket_id(reference_time: datetime) -> str:
@@ -238,15 +344,20 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
     if raw_payload is None:
         raw_payload = event.data.message.data
 
+    print(f"rawData payload bruto: {_to_json_log(raw_payload)}")
+
     measurements = _extract_measurements(raw_payload)
     device_id = _extract_device_id(measurements)
-    payload = _only_numeric_fields(_coerce_numbers(measurements))
+    device_name = _extract_device_name(measurements)
+    payload_numeric = _only_numeric_fields(_coerce_numbers(measurements))
+    payload_numeric = _apply_ct_pt_scaling(payload_numeric)
+    payload_weekly_summable = _only_weekly_summable_fields(payload_numeric)
 
     event_time = _coerce_event_time(getattr(event, "time", None))
     if event_time is None:
         event_time = datetime.now(timezone.utc)
 
-    if not payload:
+    if not payload_numeric:
         print(
             "rawData ignorado: sem campos numericos. "
             f"eventId={event.id} deviceId={device_id}"
@@ -255,7 +366,7 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
 
     reading = {
         "createdAt": event_time,
-        **payload,
+        **payload_numeric,
     }
 
     db = _get_db()
@@ -265,6 +376,7 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
     daily_doc_ref.set(
         {
             "deviceId": device_id,
+            "deviceName": device_name,
             "dayKey": _day_key(event_time),
             "bucketType": "hour",
             "bucketStart": _start_of_hour(event_time),
@@ -279,7 +391,8 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
     latest_ref.set(
         {
             "deviceId": device_id,
-            **payload,
+            "deviceName": device_name,
+            **payload_numeric,
             "eventAt": event_time,
             "createdAt": firestore.SERVER_TIMESTAMP,
         },
@@ -293,13 +406,15 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
         week_ref.set(
             {
                 "deviceId": device_id,
+                "deviceName": device_name,
                 "weekKey": week_key,
                 "weekStart": _start_of_week(event_time),
                 "lastSampleAt": event_time,
                 "updatedAt": firestore.SERVER_TIMESTAMP,
                 "sampleCount": firestore.Increment(1),
-                "last": payload,
-                **_build_weekly_updates(payload),
+                "last": payload_numeric,
+                "lastSummable": payload_weekly_summable,
+                **_build_weekly_updates(payload_weekly_summable),
             },
             merge=True,
         )
@@ -307,7 +422,7 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
 
     print(
         "telemetria salva. "
-        f"campos={len(payload)} "
+        f"campos={len(payload_numeric)} "
         f"eventId={event.id} "
         f"deviceId={device_id} "
         f"savedWeekly={saved_weekly}"

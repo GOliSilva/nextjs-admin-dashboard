@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import { useDeviceSelection } from "@/contexts/device-selection-context";
 import { getMostRecentData } from "@/lib/firebase";
 import { createContext, useContext, useEffect, useState } from "react";
 
@@ -35,7 +36,21 @@ type FirebaseData = {
   Ib: number;
   Pc: number;
   fpa: number;
+  Ear?: number;
+  Ebr?: number;
+  Ecr?: number;
+  Era?: number;
+  Erb?: number;
+  Erc?: number;
+  Erar?: number;
+  Erbr?: number;
+  Ercr?: number;
+  RTC?: number;
+  RTP?: number;
+  deviceName?: string;
+  deviceId?: string;
   id?: string;
+  [key: string]: unknown;
 } | null;
 
 type FirebaseDataContextType = {
@@ -44,7 +59,7 @@ type FirebaseDataContextType = {
 };
 
 const FirebaseDataContext = createContext<FirebaseDataContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export function FirebaseDataProvider({
@@ -52,19 +67,22 @@ export function FirebaseDataProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const { selectedDeviceId } = useDeviceSelection();
   const [data, setData] = useState<FirebaseData>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 🔥 APENAS 1 onSnapshot para toda a aplicação
-    const unsubscribe: () => void = getMostRecentData((latestData: FirebaseData) => {
-      setData(latestData);
-      setIsLoading(false);
-    });
+    setIsLoading(true);
+    const unsubscribe: () => void = getMostRecentData(
+      (latestData: FirebaseData) => {
+        setData(latestData);
+        setIsLoading(false);
+      },
+      selectedDeviceId,
+    );
 
-    // Cleanup quando o app desmontar
     return () => unsubscribe();
-  }, []);
+  }, [selectedDeviceId]);
 
   return (
     <FirebaseDataContext.Provider value={{ data, isLoading }}>
@@ -73,7 +91,6 @@ export function FirebaseDataProvider({
   );
 }
 
-// Hook customizado para usar em qualquer componente
 export function useFirebaseData() {
   const context = useContext(FirebaseDataContext);
   if (context === undefined) {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { SearchIcon } from "@/assets/icons";
 import { PaymentsOverviewChart } from "@/components/Charts/payments-overview/chart";
@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useDeviceSelection } from "@/contexts/device-selection-context";
 import { useFirebaseData } from "@/contexts/firebase-data-context";
 import { getDataForGraph } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
@@ -59,6 +60,7 @@ const VARIABLE_LABELS: Record<string, string> = {
   Prev: "Potência reversa",
   Q: "Potência reativa",
   S: "Potência complexa",
+  Ph: "Potência harmônica",
   fpa: "Fator de potência A",
   fpb: "Fator de potência B",
   fpc: "Fator de potência C",
@@ -68,6 +70,15 @@ const VARIABLE_LABELS: Record<string, string> = {
   Ea: "Energia A",
   Eb: "Energia B",
   Ec: "Energia C",
+  Ear: "Energia reativa A",
+  Ebr: "Energia reativa B",
+  Ecr: "Energia reativa C",
+  Era: "Energia reversa A",
+  Erb: "Energia reversa B",
+  Erc: "Energia reversa C",
+  Erar: "Energia reversa reativa A",
+  Erbr: "Energia reversa reativa B",
+  Ercr: "Energia reversa reativa C",
   angVa: "Ângulo de tensão A",
   angVb: "Ângulo de tensão B",
   angVc: "Ângulo de tensão C",
@@ -91,6 +102,7 @@ const VARIABLE_UNITS: Record<string, string> = {
   Prev: "W",
   Q: "Var",
   S: "VA",
+  Ph: "W",
   fpa: "",
   fpb: "",
   fpc: "",
@@ -100,6 +112,15 @@ const VARIABLE_UNITS: Record<string, string> = {
   Ea: "kWh",
   Eb: "kWh",
   Ec: "kWh",
+  Ear: "kVArh",
+  Ebr: "kVArh",
+  Ecr: "kVArh",
+  Era: "kVArh",
+  Erb: "kVArh",
+  Erc: "kVArh",
+  Erar: "kVArh",
+  Erbr: "kVArh",
+  Ercr: "kVArh",
   angVa: "°",
   angVb: "°",
   angVc: "°",
@@ -112,7 +133,18 @@ const ERROR_TOAST_DURATION_MS = 1500;
 
 const getVariableLabel = (key: string) => VARIABLE_LABELS[key] ?? key;
 const getVariableUnit = (key: string) => VARIABLE_UNITS[key] ?? "";
+const RESERVED_NON_NUMERIC_KEYS = new Set(["createdAt", "eventAt", "id", "deviceId", "deviceName"]);
 
+const toFiniteNumber = (value: unknown) => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
 const parseDateInput = (value: string) => {
   if (!value) return undefined;
 
@@ -131,6 +163,7 @@ const parseDateInput = (value: string) => {
 };
 
 export function HistoricoView() {
+  const { selectedDeviceId } = useDeviceSelection();
   const { data } = useFirebaseData();
   const [searchTerm, setSearchTerm] = useState("");
   const [startDateInput, setStartDateInput] = useState("");
@@ -148,9 +181,9 @@ export function HistoricoView() {
   const variableOptions = useMemo<VariableOption[]>(() => {
     if (!data) return [];
 
-    return Object.keys(data)
-      .filter((key) => key !== "createdAt" && key !== "id")
-      .map((key) => ({ value: key, label: getVariableLabel(key) }))
+        return Object.entries(data)
+      .filter(([key, value]) => !RESERVED_NON_NUMERIC_KEYS.has(key) && toFiniteNumber(value) != null)
+      .map(([key]) => ({ value: key, label: getVariableLabel(key) }))
       .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
   }, [data]);
 
@@ -213,7 +246,7 @@ export function HistoricoView() {
     const endBoundary = parseDateInput(endDateInput);
 
     if (!startBoundary || !endBoundary) {
-      return "As datas informadas são inválidas.";
+      return "As datas informadas sÃ£o invÃ¡lidas.";
     }
 
     if (endBoundary.getTime() <= startBoundary.getTime()) {
@@ -226,12 +259,12 @@ export function HistoricoView() {
   const validateVariable = () => {
     const rawQuery = searchTerm.trim();
     if (!rawQuery) {
-      return "Selecione uma variável válida antes de pesquisar.";
+      return "Selecione uma variÃ¡vel vÃ¡lida antes de pesquisar.";
     }
 
     const resolvedOption = resolveOption(rawQuery);
     if (!resolvedOption) {
-      return "Selecione uma variável válida antes de pesquisar.";
+      return "Selecione uma variÃ¡vel vÃ¡lida antes de pesquisar.";
     }
 
     return null;
@@ -268,7 +301,7 @@ export function HistoricoView() {
     const resolvedOption = resolveOption(searchTerm.trim());
     if (!resolvedOption) {
       setIsErrorModalOpen(true);
-      setErrorModalMessage("Selecione uma variável válida antes de pesquisar.");
+      setErrorModalMessage("Selecione uma variÃ¡vel vÃ¡lida antes de pesquisar.");
       return;
     }
 
@@ -315,12 +348,13 @@ export function HistoricoView() {
         setHistoryItems(items);
         setIsLoading(false);
       },
+      selectedDeviceId,
     );
 
     return () => {
       if (typeof unsubscribe === "function") unsubscribe();
     };
-  }, [filters.query, filters.startDate, filters.endDate]);
+  }, [filters.query, filters.startDate, filters.endDate, selectedDeviceId]);
 
   useEffect(() => {
     if (!isErrorModalOpen) return;
@@ -677,3 +711,5 @@ export function HistoricoView() {
     </HistoricoContainer>
   );
 }
+
+

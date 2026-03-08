@@ -9,11 +9,13 @@ import { NAV_DATA } from "./data";
 import { ArrowLeftIcon, ChevronUp } from "./icons";
 import { MenuItem } from "./menu-item";
 import { useSidebarContext } from "./sidebar-context";
+import { useDeviceSelection } from "@/contexts/device-selection-context";
 
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { setIsOpen, isOpen, toggleSidebar } = useSidebarContext();
+  const { selectedDeviceId, setSelectedDeviceId, deviceOptions } = useDeviceSelection();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const toggleExpanded = (title: string) => {
@@ -78,6 +80,29 @@ export function Sidebar() {
 
               <ArrowLeftIcon className="ml-auto size-7" />
             </button>
+          </div>
+
+          <div className="mt-4 pr-3">
+            <label
+              htmlFor="temp-device-selector"
+              className="mb-1.5 block text-xs font-medium uppercase tracking-[0.08em] text-dark-4 dark:text-dark-6"
+            >
+              Dispositivo (temporário)
+            </label>
+            <select
+              id="temp-device-selector"
+              value={selectedDeviceId}
+              onChange={(event) =>
+                setSelectedDeviceId(event.target.value as (typeof deviceOptions)[number])
+              }
+              className="w-full rounded-lg border border-stroke bg-white px-3 py-2 text-sm font-medium text-dark outline-none transition-colors focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+            >
+              {deviceOptions.map((deviceId) => (
+                <option key={deviceId} value={deviceId}>
+                  {deviceId}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Navigation */}

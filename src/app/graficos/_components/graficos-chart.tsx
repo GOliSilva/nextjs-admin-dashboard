@@ -2,6 +2,7 @@
 
 import { PaymentsOverviewChart } from "@/components/Charts/payments-overview/chart";
 import { PeriodPicker } from "@/components/period-picker";
+import { useDeviceSelection } from "@/contexts/device-selection-context";
 import { getDataForGraph } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -64,6 +65,7 @@ export function GraficosChart({
   className,
   compact,
 }: Props) {
+  const { selectedDeviceId } = useDeviceSelection();
   const resolvedTimeFrame =
     timeFrame && TIMEFRAME_MAP[timeFrame] ? TIMEFRAME_MAP[timeFrame] : "day";
   const [chartRenderKey, setChartRenderKey] = useState(0);
@@ -82,13 +84,20 @@ export function GraficosChart({
     setSeries(PHASES.map((phase) => ({ name: `Fase ${phase}`, data: [] })));
 
     const unsubscribes = PHASES.map((phase, index) =>
-      getDataForGraph(variableMap[phase], start, end, 500, (points: { x: unknown; y: number }[]) => {
-        setSeries((prev) => {
-          const next = [...prev];
-          next[index] = { name: `Fase ${phase}`, data: points };
-          return next;
-        });
-      }),
+      getDataForGraph(
+        variableMap[phase],
+        start,
+        end,
+        500,
+        (points: { x: unknown; y: number }[]) => {
+          setSeries((prev) => {
+            const next = [...prev];
+            next[index] = { name: `Fase ${phase}`, data: points };
+            return next;
+          });
+        },
+        selectedDeviceId,
+      ),
     );
 
     return () => {
@@ -98,7 +107,7 @@ export function GraficosChart({
         }
       });
     };
-  }, [metric, resolvedTimeFrame]);
+  }, [metric, resolvedTimeFrame, selectedDeviceId]);
 
   return (
     <div

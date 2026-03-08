@@ -1,6 +1,7 @@
 "use client";
 
 import { PeriodPicker } from "@/components/period-picker";
+import { useDeviceSelection } from "@/contexts/device-selection-context";
 import { getDataForGraph } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -49,6 +50,7 @@ export function InfoGeraisPotenciaChart({
   title = "Potências",
   compact,
 }: PropsType) {
+  const { selectedDeviceId } = useDeviceSelection();
   const period = normalizePeriod(timeFrame);
   const [series, setSeries] = useState<SeriesItem[]>(() =>
     SERIES_CONFIG.map((item) => ({ name: item.name, data: [] })),
@@ -59,13 +61,20 @@ export function InfoGeraisPotenciaChart({
     setSeries(SERIES_CONFIG.map((item) => ({ name: item.name, data: [] })));
 
     const unsubscribes = SERIES_CONFIG.map((item, index) =>
-      getDataForGraph(item.field, start, end, 500, (points: { x: unknown; y: number }[]) => {
-        setSeries((prev) => {
-          const next = [...prev];
-          next[index] = { name: item.name, data: points };
-          return next;
-        });
-      }),
+      getDataForGraph(
+        item.field,
+        start,
+        end,
+        500,
+        (points: { x: unknown; y: number }[]) => {
+          setSeries((prev) => {
+            const next = [...prev];
+            next[index] = { name: item.name, data: points };
+            return next;
+          });
+        },
+        selectedDeviceId,
+      ),
     );
 
     return () => {
@@ -75,7 +84,7 @@ export function InfoGeraisPotenciaChart({
         }
       });
     };
-  }, [period]);
+  }, [period, selectedDeviceId]);
 
   return (
     <div
