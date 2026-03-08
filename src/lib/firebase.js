@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps } from "firebase/app"
 import { getAuth } from "firebase/auth"
-import { getFirestore, onSnapshot, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore"
+import { getFirestore, onSnapshot, collection, query, where, orderBy, limit, getDocs, startAfter } from "firebase/firestore"
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -22,10 +22,10 @@ const db = getFirestore(app)
 
 const DEVICES_COLLECTION = "devices"
 const DAILY_COLLECTION = "daily"
-const LEGACY_COLLECTION = "dadosEnergia"
 const DEFAULT_DEVICE_ID = process.env.NEXT_PUBLIC_DEVICE_ID ?? "device-unknown"
 const MAX_DOCS_PER_READ = 1000
-const GRAPH_POLLING_INTERVAL_MS = 60000
+const GRAPH_POLLING_INTERVAL_MS = 60 * 60 * 1000 // 1 hora em milissegundos
+const HOUR_IN_MS = 60 * 60 * 1000
 
 function resolveDeviceId(deviceId) {
   const text = String(deviceId ?? "").trim()
@@ -35,19 +35,6 @@ function resolveDeviceId(deviceId) {
 
   const sanitized = text.replace(/[^A-Za-z0-9_-]/g, "")
   return sanitized || DEFAULT_DEVICE_ID
-}
-
-function parsePositiveInteger(value) {
-  const parsed =
-    typeof value === "number"
-      ? value
-      : Number.parseInt(String(value ?? ""), 10)
-
-  if (Number.isFinite(parsed) && parsed > 0) {
-    return Math.floor(parsed)
-  }
-
-  return null
 }
 
 function normalizeStartOfDay(value) {
@@ -137,22 +124,6 @@ function toMillis(value) {
   return null
 }
 
-function subscribeLegacyLatest(callback) {
-  const q = query(collection(db, LEGACY_COLLECTION), orderBy("createdAt", "desc"), limit(1))
-
-  return onSnapshot(
-    q,
-    (snap) => {
-      const docSnap = snap.docs[0]
-      const latest = docSnap ? { id: docSnap.id, ...docSnap.data() } : null
-      callback(latest)
-    },
-    (error) => {
-      console.error(error)
-    },
-  )
-}
-
 function extractLatestReadingFromBucket(docSnap) {
   if (!docSnap) {
     return null
@@ -183,42 +154,23 @@ function getMostRecentData(callback, deviceId = DEFAULT_DEVICE_ID) {
     const dailyRef = collection(db, DEVICES_COLLECTION, resolveDeviceId(deviceId), DAILY_COLLECTION)
     const q = query(dailyRef, orderBy("bucketStart", "desc"), limit(1))
 
-    let legacyUnsub = null
-
     const unsub = onSnapshot(
       q,
       (snap) => {
         const latest = extractLatestReadingFromBucket(snap.docs[0])
-        if (latest) {
-          if (typeof legacyUnsub === "function") {
-            legacyUnsub()
-            legacyUnsub = null
-          }
-          callback(latest)
-          return
-        }
-
-        if (legacyUnsub == null) {
-          legacyUnsub = subscribeLegacyLatest(callback)
-        }
+        callback(latest)
       },
       (error) => {
         console.error(error)
-        if (legacyUnsub == null) {
-          legacyUnsub = subscribeLegacyLatest(callback)
-        }
+        callback(null)
       },
     )
 
-    return () => {
-      unsub()
-      if (typeof legacyUnsub === "function") {
-        legacyUnsub()
-      }
-    }
+    return () => unsub()
   } catch (error) {
     console.error(error)
-    return subscribeLegacyLatest(callback)
+    callback(null)
+    return () => {}
   }
 }
 
@@ -226,7 +178,10 @@ function extractPointsFromBuckets(docs, variableName, startMs, endMs) {
   const points = []
 
   docs.forEach((docSnap) => {
-    const data = docSnap.data() || {}
+    const data =
+      typeof docSnap?.data === "function"
+        ? docSnap.data() || {}
+        : docSnap?.data || {}
     const readings = Array.isArray(data.readings) ? data.readings : []
 
     readings.forEach((reading) => {
@@ -256,40 +211,26 @@ function extractPointsFromBuckets(docs, variableName, startMs, endMs) {
   return points.sort((a, b) => a.x - b.x)
 }
 
-async function getLegacyGraphData(variableName, startDate, endDate, limitCount) {
-  const constraints = [orderBy("createdAt", "desc"), limit(limitCount)]
-
-  if (startDate) {
-    constraints.push(where("createdAt", ">=", startDate))
-  }
-
-  if (endDate) {
-    constraints.push(where("createdAt", "<=", endDate))
-  }
-
-  const q = query(collection(db, LEGACY_COLLECTION), ...constraints)
-  const snap = await getDocs(q)
-
-  return snap.docs
-    .map((docSnap) => {
-      const data = docSnap.data() || {}
-      const rawValue = data[variableName]
-      const numeric = typeof rawValue === "number" ? rawValue : Number.parseFloat(rawValue ?? "")
-      const timestampMs = toMillis(data.createdAt)
-
-      return {
-        x: timestampMs,
-        y: Number.isFinite(numeric) ? numeric : 0,
-      }
-    })
-    .filter((point) => point.x != null)
-    .reverse()
-}
-
-function getBucketLimitForPoints(pointLimit) {
-  const estimatedPointsPerBucket = 60
-  const estimatedBuckets = Math.ceil(pointLimit / estimatedPointsPerBucket)
+function getBucketLimitForRange(startDate, endDate) {
+  const startMs = toMillis(startDate)
+  const endMs = toMillis(endDate)
   const safetyWindow = 4
+
+  let estimatedBucketsByRange = 0
+  if (startMs != null && endMs != null && endMs >= startMs) {
+    estimatedBucketsByRange = Math.floor((endMs - startMs) / HOUR_IN_MS) + 1
+  } else if (startMs != null) {
+    const nowMs = Date.now()
+    if (nowMs >= startMs) {
+      estimatedBucketsByRange = Math.floor((nowMs - startMs) / HOUR_IN_MS) + 1
+    }
+  }
+
+  if (estimatedBucketsByRange === 0) {
+    estimatedBucketsByRange = 24
+  }
+
+  const estimatedBuckets = estimatedBucketsByRange
   const total = estimatedBuckets + safetyWindow
 
   return Math.max(1, Math.min(MAX_DOCS_PER_READ, total))
@@ -299,20 +240,49 @@ function getDataForGraph(
   nameOfVariable = "Va",
   dataInicial,
   dataFinal,
-  limitCount = 500,
+  _limitCount = 500,
   callback,
   deviceId = DEFAULT_DEVICE_ID,
 ) {
-  const resolvedLimit = parsePositiveInteger(limitCount) ?? 500
+  void _limitCount
   const normalizedStart = normalizeStartOfDay(dataInicial)
   const normalizedEnd = normalizeEndOfDay(dataFinal)
+  const bucketCache = new Map()
+  let lastFetchedBucketStartMs = null
 
-  const fetchData = async () => {
+  const publishPoints = () => {
+    const startMs = toMillis(normalizedStart)
+    const endMs = toMillis(normalizedEnd)
+    const docs = Array.from(bucketCache.values())
+    const points = extractPointsFromBuckets(docs, nameOfVariable, startMs, endMs)
+
+    if (typeof callback === "function") {
+      callback(points)
+    }
+  }
+
+  const upsertBuckets = (docs) => {
+    docs.forEach((docSnap) => {
+      if (!docSnap?.id) {
+        return
+      }
+
+      const data = docSnap.data?.() || {}
+      bucketCache.set(docSnap.id, { id: docSnap.id, data })
+
+      const bucketStartMs = toMillis(data.bucketStart)
+      if (bucketStartMs != null && (lastFetchedBucketStartMs == null || bucketStartMs > lastFetchedBucketStartMs)) {
+        lastFetchedBucketStartMs = bucketStartMs
+      }
+    })
+  }
+
+  const fetchInitialData = async () => {
     try {
       const dailyRef = collection(db, DEVICES_COLLECTION, resolveDeviceId(deviceId), DAILY_COLLECTION)
       const constraints = [
         orderBy("bucketStart", "desc"),
-        limit(getBucketLimitForPoints(resolvedLimit)),
+        limit(getBucketLimitForRange(normalizedStart, normalizedEnd)),
       ]
 
       if (normalizedStart) {
@@ -325,38 +295,62 @@ function getDataForGraph(
 
       const q = query(dailyRef, ...constraints)
       const snap = await getDocs(q)
-
-      const startMs = toMillis(normalizedStart)
-      const endMs = toMillis(normalizedEnd)
-
-      let points = extractPointsFromBuckets(snap.docs, nameOfVariable, startMs, endMs)
-
-      if (points.length === 0) {
-        points = await getLegacyGraphData(nameOfVariable, normalizedStart, normalizedEnd, resolvedLimit)
-      }
-
-      if (points.length > resolvedLimit) {
-        points = points.slice(-resolvedLimit)
-      }
-
-      if (typeof callback === "function") {
-        callback(points)
-      }
+      upsertBuckets(snap.docs)
+      publishPoints()
     } catch (error) {
       console.error(error)
-      try {
-        const points = await getLegacyGraphData(nameOfVariable, normalizedStart, normalizedEnd, resolvedLimit)
-        if (typeof callback === "function") {
-          callback(points)
-        }
-      } catch (legacyError) {
-        console.error(legacyError)
+      if (typeof callback === "function") {
+        callback([])
       }
     }
   }
 
-  fetchData()
-  const intervalId = setInterval(fetchData, GRAPH_POLLING_INTERVAL_MS)
+  const fetchIncrementalData = async () => {
+    try {
+      const dailyRef = collection(db, DEVICES_COLLECTION, resolveDeviceId(deviceId), DAILY_COLLECTION)
+
+      if (lastFetchedBucketStartMs == null) {
+        await fetchInitialData()
+        return
+      }
+
+      const deltaConstraints = [
+        orderBy("bucketStart", "asc"),
+        startAfter(new Date(lastFetchedBucketStartMs)),
+        limit(MAX_DOCS_PER_READ),
+      ]
+
+      if (normalizedEnd) {
+        deltaConstraints.push(where("bucketStart", "<=", normalizedEnd))
+      }
+
+      const deltaQuery = query(dailyRef, ...deltaConstraints)
+      const deltaSnap = await getDocs(deltaQuery)
+      upsertBuckets(deltaSnap.docs)
+
+      // Refresh recent buckets: readings may still be appended around hour boundaries.
+      const latestConstraints = [orderBy("bucketStart", "desc"), limit(2)]
+      if (normalizedStart) {
+        latestConstraints.push(where("bucketStart", ">=", normalizedStart))
+      }
+      if (normalizedEnd) {
+        latestConstraints.push(where("bucketStart", "<=", normalizedEnd))
+      }
+
+      const latestQuery = query(dailyRef, ...latestConstraints)
+      const latestSnap = await getDocs(latestQuery)
+      upsertBuckets(latestSnap.docs)
+      publishPoints()
+    } catch (error) {
+      console.error(error)
+      if (typeof callback === "function") {
+        callback([])
+      }
+    }
+  }
+
+  fetchInitialData()
+  const intervalId = setInterval(fetchIncrementalData, GRAPH_POLLING_INTERVAL_MS)
 
   return () => clearInterval(intervalId)
 }
