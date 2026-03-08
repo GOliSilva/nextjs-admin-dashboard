@@ -119,11 +119,11 @@ export function PhasorDiagram({ vectors, viewMode, maxByFamily, className }: Pro
                   x2={vector.x}
                   y2={vector.y}
                   stroke={vector.color}
-                  strokeWidth={2.5}
+                  strokeWidth={1.6}
                   strokeLinecap="round"
                   strokeDasharray={vector.dashed ? "6 4" : undefined}
                 />
-                <circle cx={vector.x} cy={vector.y} r={3.5} fill={vector.color} />
+                <circle cx={vector.x} cy={vector.y} r={2.5} fill={vector.color} />
                 <text
                   x={vector.x + labelOffsetX}
                   y={vector.y + labelOffsetY}

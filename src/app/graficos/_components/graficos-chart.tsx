@@ -66,6 +66,7 @@ export function GraficosChart({
 }: Props) {
   const resolvedTimeFrame =
     timeFrame && TIMEFRAME_MAP[timeFrame] ? TIMEFRAME_MAP[timeFrame] : "day";
+  const [chartRenderKey, setChartRenderKey] = useState(0);
   const [series, setSeries] = useState<SeriesItem[]>(() =>
     PHASES.map((phase) => ({ name: `Fase ${phase}`, data: [] })),
   );
@@ -122,16 +123,24 @@ export function GraficosChart({
         >
           {title} ({TIMEFRAME_LABELS[resolvedTimeFrame]})
         </h2>
-        <div className={compact ? "w-full sm:w-auto" : undefined}>
+        <div className={cn("flex items-center gap-2", compact ? "w-full sm:w-auto" : "")}>
           <PeriodPicker
             defaultValue={TIMEFRAME_LABELS[resolvedTimeFrame]}
             sectionKey={sectionKey}
             items={["diario", "semanal"]}
           />
+          <button
+            type="button"
+            onClick={() => setChartRenderKey((prev) => prev + 1)}
+            className="hidden rounded-full border border-stroke px-3 py-1.5 text-sm font-medium text-dark-5 transition-colors hover:border-primary hover:text-primary dark:border-stroke-dark dark:text-dark-6 sm:inline-flex"
+          >
+            Retirar zoom
+          </button>
         </div>
       </div>
 
       <PaymentsOverviewChart
+        key={chartRenderKey}
         series={series}
         colors={["#5750F1", "#0ABEF9", "#F2994A"]}
       />

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useFirebaseData } from "@/contexts/firebase-data-context";
@@ -13,9 +13,9 @@ import {
 type FamilyKey = "V" | "I";
 
 const VIEW_MODES: Array<{ id: DiagramViewMode; label: string }> = [
+  { id: "overlay", label: "Todos" },
   { id: "voltage", label: "Tensão" },
   { id: "current", label: "Corrente" },
-  { id: "overlay", label: "Overlay (V+I)" },
 ];
 
 const PHASE_COLORS = {
@@ -88,7 +88,7 @@ function getMaxByFamily(vectors: PhasorVector[], family: FamilyKey) {
 
 function formatAngle(value: number | null) {
   if (value == null) return "--";
-  return `${standardFormat(value)}°`;
+  return `${standardFormat(value)}Â°`;
 }
 
 function formatMagnitude(
@@ -304,3 +304,4 @@ export function FasoresView() {
     </div>
   );
 }
+
