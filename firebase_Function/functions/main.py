@@ -1,5 +1,6 @@
 import ast
 import json
+import traceback
 from datetime import datetime, timezone
 from typing import Any
 
@@ -15,8 +16,10 @@ _db = None
 DEFAULT_DEVICE_ID = "device-unknown"
 DEVICES_COLLECTION = "devices"
 DAILY_COLLECTION = "daily"
+DAILY_AGG_COLLECTION = "daily_agg"
 WEEKLY_COLLECTION = "weekly"
 STATE_COLLECTION = "state"
+DAILY_AGG_ERROR_FIELD = "dailyAggError"
 
 WEEKLY_SUMMABLE_FIELDS = {
     "Va",  # tensao de fase A
@@ -346,6 +349,10 @@ def _start_of_hour(reference_time: datetime) -> datetime:
     return reference_time.replace(minute=0, second=0, microsecond=0)
 
 
+def _start_of_day(reference_time: datetime) -> datetime:
+    return reference_time.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
 def _start_of_week(reference_time: datetime) -> datetime:
     iso_year, iso_week, _ = reference_time.isocalendar()
     start = datetime.fromisocalendar(iso_year, iso_week, 1)
@@ -357,6 +364,84 @@ def _build_weekly_updates(payload: dict) -> dict:
     for key, value in payload.items():
         updates[f"sums.{key}"] = firestore.Increment(float(value))
     return updates
+
+
+def _log_daily_agg_error(
+    *,
+    event_id: str,
+    device_id: str,
+    day_key: str,
+    event_time: datetime,
+    latest_ref: firestore.DocumentReference,
+    error: Exception,
+):
+    print(
+        "erro ao salvar daily_agg. "
+        f"eventId={event_id} "
+        f"deviceId={device_id} "
+        f"dayKey={day_key} "
+        f"errorType={type(error).__name__} "
+        f"error={error}"
+    )
+    print(traceback.format_exc())
+
+    try:
+        latest_ref.set(
+            {
+                DAILY_AGG_ERROR_FIELD: {
+                    "eventId": event_id,
+                    "deviceId": device_id,
+                    "dayKey": day_key,
+                    "eventAt": event_time,
+                    "errorType": type(error).__name__,
+                    "message": str(error),
+                    "loggedAt": firestore.SERVER_TIMESTAMP,
+                }
+            },
+            merge=True,
+        )
+    except Exception as state_error:
+        print(
+            "erro ao salvar log de erro daily_agg em state/latest. "
+            f"eventId={event_id} "
+            f"deviceId={device_id} "
+            f"errorType={type(state_error).__name__} "
+            f"error={state_error}"
+        )
+        print(traceback.format_exc())
+
+
+@firestore.transactional
+def _save_daily_agg_reading(
+    transaction: firestore.Transaction,
+    doc_ref: firestore.DocumentReference,
+    *,
+    device_id: str,
+    device_name: str | None,
+    day_key: str,
+    event_time: datetime,
+    reading: dict,
+    payload_numeric: dict,
+):
+    snapshot = doc_ref.get(transaction=transaction)
+
+    payload = {
+        "deviceId": device_id,
+        "deviceName": device_name,
+        "dayKey": day_key,
+        "bucketType": "day",
+        "bucketStart": _start_of_day(event_time),
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+        "count": firestore.Increment(1),
+        "lastSampleAt": event_time,
+        "last": payload_numeric,
+        "readings": firestore.ArrayUnion([reading]),
+    }
+
+    if not snapshot.exists:
+        payload["firstSampleAt"] = event_time
+
+    transaction.set(doc_ref, payload, merge=True)
 
 
 @pubsub_fn.on_message_published(topic="rawData")
@@ -392,13 +477,14 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
 
     db = _get_db()
     device_ref = db.collection(DEVICES_COLLECTION).document(device_id)
+    day_key = _day_key(event_time)
 
     daily_doc_ref = device_ref.collection(DAILY_COLLECTION).document(_hour_bucket_id(event_time))
     daily_doc_ref.set(
         {
             "deviceId": device_id,
             "deviceName": device_name,
-            "dayKey": _day_key(event_time),
+            "dayKey": day_key,
             "bucketType": "hour",
             "bucketStart": _start_of_hour(event_time),
             "updatedAt": firestore.SERVER_TIMESTAMP,
@@ -440,6 +526,28 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
             merge=True,
         )
         saved_weekly = True
+
+    try:
+        daily_agg_ref = device_ref.collection(DAILY_AGG_COLLECTION).document(day_key)
+        _save_daily_agg_reading(
+            db.transaction(),
+            daily_agg_ref,
+            device_id=device_id,
+            device_name=device_name,
+            day_key=day_key,
+            event_time=event_time,
+            reading=reading,
+            payload_numeric=payload_numeric,
+        )
+    except Exception as error:
+        _log_daily_agg_error(
+            event_id=event.id,
+            device_id=device_id,
+            day_key=day_key,
+            event_time=event_time,
+            latest_ref=latest_ref,
+            error=error,
+        )
 
     print(
         "telemetria salva. "

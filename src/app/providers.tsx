@@ -1,6 +1,7 @@
 "use client";
 
 import { SidebarProvider } from "@/components/Layouts/sidebar/sidebar-context";
+import { DailyAggErrorBanner } from "@/components/dev/daily-agg-error-banner";
 import { PwaRegister } from "@/components/pwa-register";
 import { DeviceSelectionProvider } from "@/contexts/device-selection-context";
 import { FirebaseDataProvider } from "@/contexts/firebase-data-context";
@@ -12,7 +13,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <PwaRegister />
       <SidebarProvider>
         <DeviceSelectionProvider>
-          <FirebaseDataProvider>{children}</FirebaseDataProvider>
+          <FirebaseDataProvider>
+            <DailyAggErrorBanner />
+            {children}
+          </FirebaseDataProvider>
         </DeviceSelectionProvider>
       </SidebarProvider>
     </ThemeProvider>

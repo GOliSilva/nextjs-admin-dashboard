@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps } from "firebase/app"
 import { getAuth } from "firebase/auth"
-import { getFirestore, onSnapshot, collection, query, where, orderBy, limit, getDocs, startAfter } from "firebase/firestore"
+import { getFirestore, onSnapshot, collection, query, where, orderBy, limit, getDocs, startAfter, doc } from "firebase/firestore"
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -22,6 +22,7 @@ const db = getFirestore(app)
 
 const DEVICES_COLLECTION = "devices"
 const DAILY_COLLECTION = "daily"
+const STATE_COLLECTION = "state"
 const DEFAULT_DEVICE_ID = process.env.NEXT_PUBLIC_DEVICE_ID ?? "device-unknown"
 const MAX_DOCS_PER_READ = 1000
 const GRAPH_POLLING_INTERVAL_MS = 60 * 60 * 1000 // 1 hora em milissegundos
@@ -160,6 +161,43 @@ function getMostRecentData(callback, deviceId = DEFAULT_DEVICE_ID) {
       (snap) => {
         const latest = extractLatestReadingFromBucket(snap.docs[0])
         callback(latest)
+      },
+      (error) => {
+        console.error(error)
+        callback(null)
+      },
+    )
+
+    return () => unsub()
+  } catch (error) {
+    console.error(error)
+    callback(null)
+    return () => {}
+  }
+}
+
+function getLatestStateData(callback, deviceId = DEFAULT_DEVICE_ID) {
+  try {
+    const stateRef = doc(
+      db,
+      DEVICES_COLLECTION,
+      resolveDeviceId(deviceId),
+      STATE_COLLECTION,
+      "latest",
+    )
+
+    const unsub = onSnapshot(
+      stateRef,
+      (snap) => {
+        if (!snap.exists()) {
+          callback(null)
+          return
+        }
+
+        callback({
+          id: snap.id,
+          ...snap.data(),
+        })
       },
       (error) => {
         console.error(error)
@@ -561,4 +599,4 @@ function getDataForGraph(
   )
 }
 
-export { app, auth, db, getMostRecentData, getDataForGraph }
+export { app, auth, db, getMostRecentData, getLatestStateData, getDataForGraph }

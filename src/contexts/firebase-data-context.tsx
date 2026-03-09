@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useDeviceSelection } from "@/contexts/device-selection-context";
-import { getMostRecentData } from "@/lib/firebase";
+import { getLatestStateData, getMostRecentData } from "@/lib/firebase";
 import { createContext, useContext, useEffect, useState } from "react";
 
 type FirebaseData = {
@@ -55,6 +55,7 @@ type FirebaseData = {
 
 type FirebaseDataContextType = {
   data: FirebaseData;
+  dailyAggError: Record<string, unknown> | null;
   isLoading: boolean;
 };
 
@@ -69,6 +70,7 @@ export function FirebaseDataProvider({
 }) {
   const { selectedDeviceId } = useDeviceSelection();
   const [data, setData] = useState<FirebaseData>(null);
+  const [dailyAggError, setDailyAggError] = useState<Record<string, unknown> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -84,8 +86,25 @@ export function FirebaseDataProvider({
     return () => unsubscribe();
   }, [selectedDeviceId]);
 
+  useEffect(() => {
+    setDailyAggError(null);
+    const unsubscribe: () => void = getLatestStateData(
+      (latestState: Record<string, unknown> | null) => {
+        const maybeError = latestState?.dailyAggError;
+        setDailyAggError(
+          maybeError && typeof maybeError === "object"
+            ? (maybeError as Record<string, unknown>)
+            : null,
+        );
+      },
+      selectedDeviceId,
+    );
+
+    return () => unsubscribe();
+  }, [selectedDeviceId]);
+
   return (
-    <FirebaseDataContext.Provider value={{ data, isLoading }}>
+    <FirebaseDataContext.Provider value={{ data, dailyAggError, isLoading }}>
       {children}
     </FirebaseDataContext.Provider>
   );
