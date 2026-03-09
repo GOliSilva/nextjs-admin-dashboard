@@ -3,7 +3,7 @@
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
-import { formatCurrentWithSIPrefix } from "@/lib/format-current";
+import { formatMeasurementValue } from "@/lib/format-measurement";
 
 const Chart = dynamic(() => import("react-apexcharts"), {
     ssr: false,
@@ -78,12 +78,12 @@ export function EnergyChart({ categories, anoAtual, anoAnterior }: PropsType) {
         },
         yaxis: {
             labels: {
-                formatter: (value) => formatCurrentWithSIPrefix(Number(value)),
+                formatter: (value) => formatMeasurementValue(Number(value), "kWh"),
             },
         },
         tooltip: {
             y: {
-                formatter: (value) => formatCurrentWithSIPrefix(Number(value)),
+                formatter: (value) => formatMeasurementValue(Number(value), "kWh"),
             },
         },
         legend: {

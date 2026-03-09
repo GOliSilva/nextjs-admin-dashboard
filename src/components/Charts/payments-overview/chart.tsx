@@ -3,7 +3,7 @@
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
-import { formatCurrentWithSIPrefix } from "@/lib/format-current";
+import { formatMeasurementValue } from "@/lib/format-measurement";
 import { useEffect, useState } from "react";
 
 type PropsType = {
@@ -12,13 +12,14 @@ type PropsType = {
     data: { x: unknown; y: number }[];
   }[];
   colors?: string[];
+  yUnit?: string;
 };
 
 const Chart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export function PaymentsOverviewChart({ series, colors }: PropsType) {
+export function PaymentsOverviewChart({ series, colors, yUnit }: PropsType) {
   const [isZoomEnabled, setIsZoomEnabled] = useState(false);
   const [enableSeriesTransitions, setEnableSeriesTransitions] = useState(false);
 
@@ -169,9 +170,9 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
   const xTickAmount =
     dataPoints > 0 ? Math.min(maxXTicks, dataPoints) : maxXTicks;
 
-  const formatCurrentValue = (value: number | string) => {
+  const formatChartValue = (value: number | string) => {
     const numeric = typeof value === "number" ? value : Number.parseFloat(value);
-    return formatCurrentWithSIPrefix(Number.isFinite(numeric) ? numeric : 0);
+    return formatMeasurementValue(Number.isFinite(numeric) ? numeric : 0, yUnit);
   };
 
   const options: ApexOptions = {
@@ -243,7 +244,7 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
         formatter: formatTooltipX,
       },
       y: {
-        formatter: formatCurrentValue,
+        formatter: formatChartValue,
       },
     },
     xaxis: {
@@ -263,7 +264,7 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
     },
     yaxis: {
       labels: {
-        formatter: formatCurrentValue,
+        formatter: formatChartValue,
       },
     },
   };

@@ -3,7 +3,7 @@ import React from "react";
 import ReactApexChart from "react-apexcharts";
 import DefaultSelectOption from "@/components/SelectOption/DefaultSelectOption";
 import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
-import { formatCurrentWithSIPrefix } from "@/lib/format-current";
+import { standardFormat } from "@/lib/format-number";
 
 const ChartOne: React.FC = () => {
   const series = [
@@ -111,7 +111,7 @@ const ChartOne: React.FC = () => {
             return "";
           },
         },
-        formatter: (value) => formatCurrentWithSIPrefix(Number(value)),
+        formatter: (value) => standardFormat(Number(value)),
       },
       marker: {
         show: !1,
@@ -135,7 +135,7 @@ const ChartOne: React.FC = () => {
         },
       },
       labels: {
-        formatter: (value) => formatCurrentWithSIPrefix(Number(value)),
+        formatter: (value) => standardFormat(Number(value)),
       },
     },
   };
@@ -170,13 +170,13 @@ const ChartOne: React.FC = () => {
         <div className="border-stroke dark:border-dark-3 xsm:w-1/2 xsm:border-r">
           <p className="font-medium">Received Amount</p>
           <h4 className="mt-1 text-xl font-bold text-dark dark:text-white">
-            {formatCurrentWithSIPrefix(receivedTotal)}
+            {standardFormat(receivedTotal)}
           </h4>
         </div>
         <div className="xsm:w-1/2">
           <p className="font-medium">Due Amount</p>
           <h4 className="mt-1 text-xl font-bold text-dark dark:text-white">
-            {formatCurrentWithSIPrefix(dueTotal)}
+            {standardFormat(dueTotal)}
           </h4>
         </div>
       </div>

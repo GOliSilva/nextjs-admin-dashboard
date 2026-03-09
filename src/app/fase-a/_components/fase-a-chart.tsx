@@ -22,6 +22,13 @@ const REVERSE_METRIC_MAP: Record<string, string> = Object.entries(METRIC_MAP).re
     return acc;
 }, {} as Record<string, string>);
 
+const METRIC_UNITS: Record<FaseAMetrics, string> = {
+    corrente: "A",
+    tensao: "V",
+    potencia: "W",
+    fator_potencia: "",
+};
+
 const TIME_FRAME_MAP: Record<string, TimeFrame> = {
     "diário": "day",
     "semanal": "week"
@@ -78,7 +85,11 @@ export async function FaseAChart({
                 </div>
             </div>
 
-            <PaymentsOverviewChart series={series} colors={["#5750F1"]} />
+            <PaymentsOverviewChart
+                series={series}
+                colors={["#5750F1"]}
+                yUnit={METRIC_UNITS[metricKey]}
+            />
         </div>
     );
 }

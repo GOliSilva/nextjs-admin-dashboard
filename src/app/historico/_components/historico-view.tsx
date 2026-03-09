@@ -14,7 +14,7 @@ import {
 import { useDeviceSelection } from "@/contexts/device-selection-context";
 import { useFirebaseData } from "@/contexts/firebase-data-context";
 import { getDataForGraph } from "@/lib/firebase";
-import { formatCurrentWithSIPrefix } from "@/lib/format-current";
+import { formatMeasurementValue } from "@/lib/format-measurement";
 import { cn } from "@/lib/utils";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
@@ -421,8 +421,8 @@ export function HistoricoView() {
     };
   }, [filteredHistory, hasVariableFilter]);
 
-  const formatValue = (value: number, _unit: string) => {
-    return formatCurrentWithSIPrefix(value);
+  const formatValue = (value: number, unit: string) => {
+    return formatMeasurementValue(value, unit, { withSpace: true });
   };
 
   return (
@@ -540,7 +540,10 @@ export function HistoricoView() {
                 Sem dados para o periodo selecionado.
               </div>
             ) : (
-              <PaymentsOverviewChart series={chartSeries} />
+              <PaymentsOverviewChart
+                series={chartSeries}
+                yUnit={getVariableUnit(filters.query)}
+              />
             )}
           </div>
 

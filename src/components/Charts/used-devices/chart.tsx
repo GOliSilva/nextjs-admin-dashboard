@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCurrentWithSIPrefix } from "@/lib/format-current";
+import { formatMeasurementValue } from "@/lib/format-measurement";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
@@ -45,7 +45,7 @@ export function DonutChart({ data }: PropsType) {
             total: {
               show: true,
               showAlways: true,
-              label: "Total (A)",
+              label: "Total (kWh)",
               fontSize: "16px",
               fontWeight: "400",
             },
@@ -53,10 +53,15 @@ export function DonutChart({ data }: PropsType) {
               show: true,
               fontSize: "28px",
               fontWeight: "bold",
-              formatter: (val) => formatCurrentWithSIPrefix(Number(val)),
+              formatter: (val) => formatMeasurementValue(Number(val), "kWh"),
             },
           },
         },
+      },
+    },
+    tooltip: {
+      y: {
+        formatter: (val) => formatMeasurementValue(Number(val), "kWh"),
       },
     },
     dataLabels: {

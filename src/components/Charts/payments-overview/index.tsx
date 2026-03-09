@@ -1,5 +1,5 @@
 import { PeriodPicker } from "@/components/period-picker";
-import { formatCurrentWithSIPrefix } from "@/lib/format-current";
+import { formatMeasurementValue } from "@/lib/format-measurement";
 import { cn } from "@/lib/utils";
 import { getPaymentsOverviewData } from "@/services/charts.services";
 import { getConsumoSeries, type ConsumoPeriod } from "@/services/consumo.services";
@@ -103,8 +103,10 @@ export async function PaymentsOverview({
   let series: SeriesItem[] = [];
   let summaryItems: { label: string; value: string }[] = [];
   let chartColors: string[] | undefined;
+  let yUnit: string | undefined;
 
   if (showModePicker) {
+    yUnit = "kWh";
     if (normalizedMode === "consumo") {
       const consumoSeries = await getConsumoSeries(resolvedPeriod);
 
@@ -132,7 +134,7 @@ export async function PaymentsOverview({
 
     summaryItems = series.map((item) => ({
       label: item.name,
-      value: formatCurrentWithSIPrefix(sumSeries(item)),
+      value: formatMeasurementValue(sumSeries(item), yUnit, { withSpace: true }),
     }));
   } else {
     const data = await getPaymentsOverviewData(resolvedTimeFrame);
@@ -151,11 +153,11 @@ export async function PaymentsOverview({
     summaryItems = [
       {
         label: "Received Amount",
-        value: formatCurrentWithSIPrefix(sumSeries(series[0])),
+        value: formatMeasurementValue(sumSeries(series[0])),
       },
       {
         label: "Due Amount",
-        value: formatCurrentWithSIPrefix(sumSeries(series[1])),
+        value: formatMeasurementValue(sumSeries(series[1])),
       },
     ];
   }
@@ -188,7 +190,7 @@ export async function PaymentsOverview({
         </div>
       </div>
 
-      <PaymentsOverviewChart series={series} colors={chartColors} />
+      <PaymentsOverviewChart series={series} colors={chartColors} yUnit={yUnit} />
 
       <dl
         className={cn(

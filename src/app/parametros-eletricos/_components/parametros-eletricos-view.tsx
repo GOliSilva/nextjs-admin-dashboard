@@ -1,7 +1,7 @@
 "use client";
 
 import { useFirebaseData } from "@/contexts/firebase-data-context";
-import { standardFormat } from "@/lib/format-number";
+import { formatMeasurementValue } from "@/lib/format-measurement";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -71,8 +71,8 @@ const GROUPS: GroupConfig[] = [
       { key: "Pb", label: "Ativa B", description: "Potência ativa da fase B", unit: "W" },
       { key: "Pc", label: "Ativa C", description: "Potência ativa da fase C", unit: "W" },
       { key: "Pdir", label: "Ativa total", description: "Potência ativa total", unit: "W" },
-      { key: "Prev", label: "Reativa total", description: "Potência reativa total", unit: "var" },
-      { key: "Q", label: "Aparente total", description: "Potência aparente total", unit: "var" },
+      { key: "Prev", label: "Reativa total", description: "Potência reativa total", unit: "Var" },
+      { key: "Q", label: "Aparente total", description: "Potência aparente total", unit: "Var" },
       { key: "S", label: "Total", description: "Potência total", unit: "VA" },
       { key: "Ph", label: "Harmônica", description: "Potência harmônica", unit: "W" },
     ],
@@ -190,8 +190,7 @@ function formatRelativeTime(updatedAtMs: number | null, nowMs: number, isLoading
 
 function formatMetricValue(value: number | null, unit?: string) {
   if (value == null) return "--";
-  const formatted = standardFormat(value);
-  return unit ? `${formatted} ${unit}` : formatted;
+  return formatMeasurementValue(value, unit, { withSpace: true });
 }
 
 export function ParametrosEletricosView() {

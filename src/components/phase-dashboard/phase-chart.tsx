@@ -41,6 +41,15 @@ const METRIC_LABELS: Record<PhaseMetrics, string> = {
   fase: "Fase",
 };
 
+const METRIC_UNITS: Record<PhaseMetrics, string> = {
+  corrente: "A",
+  tensao: "V",
+  potencia: "W",
+  fator_potencia: "",
+  energia: "kWh",
+  fase: "",
+};
+
 const TIME_FRAME_MAP: Record<string, TimeFrame> = {
   diario: "day",
   "diário": "day",
@@ -223,7 +232,11 @@ export function PhaseChart({
         </div>
       </div>
 
-      <PaymentsOverviewChart series={series} colors={chartColors} />
+      <PaymentsOverviewChart
+        series={series}
+        colors={chartColors}
+        yUnit={METRIC_UNITS[metricKey]}
+      />
     </div>
   );
 }

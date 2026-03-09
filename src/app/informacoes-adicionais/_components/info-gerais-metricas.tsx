@@ -33,7 +33,6 @@ const formatMetric = (value: number | null, unit?: string) => {
 
 export function InfoGeraisMetricas({ className, compact }: PropsType) {
   const { data } = useFirebaseData();
-  const dataRecord = data as Record<string, unknown> | null;
 
   const items = [
     {
@@ -41,8 +40,8 @@ export function InfoGeraisMetricas({ className, compact }: PropsType) {
       value: formatMetric(toNumber(data?.In), "A"),
     },
     {
-      label: "Distor\u00E7\u00E3o harm\u00F4nica",
-      value: formatMetric(toNumber(dataRecord?.dht), "%"),
+      label: "Pot\u00EAncia harm\u00F4nica",
+      value: formatMetric(toNumber(data?.Ph), "W"),
     },
     {
       label: "Fator de pot\u00EAncia total",

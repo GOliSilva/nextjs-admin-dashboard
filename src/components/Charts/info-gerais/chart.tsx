@@ -3,7 +3,7 @@
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
-import { formatCurrentWithSIPrefix } from "@/lib/format-current";
+import { formatMeasurementValue } from "@/lib/format-measurement";
 import { useState } from "react";
 
 type PropsType = {
@@ -12,13 +12,14 @@ type PropsType = {
     data: { x: unknown; y: number }[];
   }[];
   colors?: string[];
+  seriesUnits?: string[];
 };
 
 const Chart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export function InfoGeraisLineChart({ series, colors }: PropsType) {
+export function InfoGeraisLineChart({ series, colors, seriesUnits }: PropsType) {
   const [isZoomEnabled, setIsZoomEnabled] = useState(false);
   const timestamps = series
     .flatMap((item) => item.data.map((point) => point.x))
@@ -60,10 +61,19 @@ export function InfoGeraisLineChart({ series, colors }: PropsType) {
   );
   const xTickAmount =
     dataPoints > 0 ? Math.min(maxXTicks, dataPoints) : maxXTicks;
-  const formatCurrentValue = (value: number | string) => {
+  const formatChartValue = (value: number | string, unit?: string) => {
     const numeric = typeof value === "number" ? value : Number.parseFloat(value);
-    return formatCurrentWithSIPrefix(Number.isFinite(numeric) ? numeric : 0);
+    return formatMeasurementValue(Number.isFinite(numeric) ? numeric : 0, unit);
   };
+  const yAxisUnit = (() => {
+    const units = (seriesUnits ?? []).filter((unit) => Boolean(unit && unit.trim()));
+    if (units.length === 0) {
+      return undefined;
+    }
+    const firstUnit = units[0];
+    const sameUnit = units.every((unit) => unit === firstUnit);
+    return sameUnit ? firstUnit : undefined;
+  })();
 
   const options: ApexOptions = {
     legend: {
@@ -137,7 +147,10 @@ export function InfoGeraisLineChart({ series, colors }: PropsType) {
         formatter: formatTooltipX,
       },
       y: {
-        formatter: formatCurrentValue,
+        formatter: (value, options) => {
+          const unit = seriesUnits?.[options.seriesIndex];
+          return formatChartValue(value, unit);
+        },
       },
     },
     xaxis: {
@@ -155,7 +168,7 @@ export function InfoGeraisLineChart({ series, colors }: PropsType) {
     },
     yaxis: {
       labels: {
-        formatter: formatCurrentValue,
+        formatter: (value) => formatChartValue(value, yAxisUnit),
       },
     },
   };

@@ -3,7 +3,7 @@
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
-import { formatCurrentWithSIPrefix } from "@/lib/format-current";
+import { formatMeasurementValue } from "@/lib/format-measurement";
 
 type PropsType = {
   data: {
@@ -72,12 +72,12 @@ export function WeeksProfitChart({ data }: PropsType) {
     },
     yaxis: {
       labels: {
-        formatter: (val) => formatCurrentWithSIPrefix(Number(val)),
+        formatter: (val) => formatMeasurementValue(Number(val), "kWh"),
       },
     },
     tooltip: {
       y: {
-        formatter: (val) => formatCurrentWithSIPrefix(Number(val)),
+        formatter: (val) => formatMeasurementValue(Number(val), "kWh"),
       },
     },
 

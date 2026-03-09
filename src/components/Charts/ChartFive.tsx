@@ -2,7 +2,7 @@ import { ApexOptions } from "apexcharts";
 import React from "react";
 import ReactApexChart from "react-apexcharts";
 import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
-import { formatCurrentWithSIPrefix } from "@/lib/format-current";
+import { standardFormat } from "@/lib/format-number";
 
 const ChartFive: React.FC = () => {
   const series = [
@@ -67,7 +67,7 @@ const ChartFive: React.FC = () => {
     },
     yaxis: {
       labels: {
-        formatter: (value) => formatCurrentWithSIPrefix(Number(value)),
+        formatter: (value) => standardFormat(Number(value)),
       },
     },
     fill: {
@@ -79,7 +79,7 @@ const ChartFive: React.FC = () => {
         show: false,
       },
       y: {
-        formatter: (value) => formatCurrentWithSIPrefix(Number(value)),
+        formatter: (value) => standardFormat(Number(value)),
       },
     },
   };
@@ -95,7 +95,7 @@ const ChartFive: React.FC = () => {
         </div>
         <div>
           <h3 className="mb-0.5 text-body-2xlg font-bold text-dark dark:text-white">
-            {formatCurrentWithSIPrefix(784_000)}
+            {standardFormat(784_000)}
           </h3>
           <p className="flex items-center justify-end gap-1 text-right text-red">
             <svg

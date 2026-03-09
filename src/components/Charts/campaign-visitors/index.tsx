@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { TrendingUpIcon } from "@/assets/icons";
-import { formatCurrentWithSIPrefix } from "@/lib/format-current";
+import { standardFormat } from "@/lib/format-number";
 import { cn } from "@/lib/utils";
 import { getCampaignVisitorsData } from "@/services/charts.services";
 import { CampaignVisitorsChart } from "./chart";
@@ -60,7 +60,7 @@ export function CampaignVisitors({ className }: { className?: string }) {
           </h2>
 
           <div className="mb-0.5 text-2xl font-bold text-dark dark:text-white">
-            {formatCurrentWithSIPrefix(data.total_visitors)}
+            {standardFormat(data.total_visitors)}
           </div>
         </div>
 

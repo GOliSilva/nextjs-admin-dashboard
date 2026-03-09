@@ -26,9 +26,9 @@ const normalizePeriod = (value?: string): InfoGeraisPeriod => {
 };
 
 const SERIES_CONFIG = [
-  { name: "Potência ativa", field: "Pdir" },
-  { name: "Potência reativa", field: "Q" },
-  { name: "Potência complexa", field: "S" },
+  { name: "Potência ativa", field: "Pdir", unit: "W" },
+  { name: "Potência reativa", field: "Q", unit: "Var" },
+  { name: "Potência complexa", field: "S", unit: "VA" },
 ] as const;
 
 const getRangeForPeriod = (period: InfoGeraisPeriod) => {
@@ -122,7 +122,10 @@ export function InfoGeraisPotenciaChart({
         </div>
       </div>
 
-      <InfoGeraisLineChart series={series} />
+      <InfoGeraisLineChart
+        series={series}
+        seriesUnits={SERIES_CONFIG.map((item) => item.unit)}
+      />
     </div>
   );
 }

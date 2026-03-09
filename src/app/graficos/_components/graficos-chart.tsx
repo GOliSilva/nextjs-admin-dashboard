@@ -45,6 +45,13 @@ const METRIC_FIELDS: MetricMap = {
   fator_potencia: { A: "fpa", B: "fpb", C: "fpc" },
 };
 
+const METRIC_UNITS: Partial<Record<PhaseMetrics, string>> = {
+  corrente: "A",
+  tensao: "V",
+  potencia: "W",
+  fator_potencia: "",
+};
+
 const getRangeForTimeFrame = (timeFrame: TimeFrame) => {
   const end = new Date();
   const start = new Date(end);
@@ -152,6 +159,7 @@ export function GraficosChart({
         key={chartRenderKey}
         series={series}
         colors={["#5750F1", "#0ABEF9", "#F2994A"]}
+        yUnit={METRIC_UNITS[metric]}
       />
     </div>
   );

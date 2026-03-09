@@ -1,5 +1,5 @@
 import { PeriodPicker } from "@/components/period-picker";
-import { formatCurrentWithSIPrefix } from "@/lib/format-current";
+import { formatMeasurementValue } from "@/lib/format-measurement";
 import { cn } from "@/lib/utils";
 import { getConsumoPorFaseLinha } from "@/services/consumo-por-fase-linha.services";
 import { PaymentsOverviewChart } from "@/components/Charts/payments-overview/chart";
@@ -24,8 +24,10 @@ export async function ConsumoPorFaseLine({
 
   const summaryItems = series.map((item) => ({
     label: item.name,
-    value: formatCurrentWithSIPrefix(
+    value: formatMeasurementValue(
       item.data.reduce((acc, point) => acc + point.y, 0),
+      "kWh",
+      { withSpace: true },
     ),
   }));
   const containerClassName = cn(
@@ -66,6 +68,7 @@ export async function ConsumoPorFaseLine({
       <PaymentsOverviewChart
         series={series}
         colors={["#0ABEF9", "#22C55E", "#F59E0B"]}
+        yUnit="kWh"
       />
 
       <dl className="grid divide-stroke text-center dark:divide-dark-3 sm:grid-cols-3 sm:divide-x [&>div]:flex [&>div]:flex-col-reverse [&>div]:gap-1">

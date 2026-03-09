@@ -3,7 +3,7 @@ import React from "react";
 import ReactApexChart from "react-apexcharts";
 import DefaultSelectOption from "@/components/SelectOption/DefaultSelectOption";
 import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
-import { formatCurrentWithSIPrefix } from "@/lib/format-current";
+import { standardFormat } from "@/lib/format-number";
 
 const ChartThree: React.FC = () => {
   const series = [65, 34, 12, 56];
@@ -31,7 +31,7 @@ const ChartThree: React.FC = () => {
             total: {
               show: true,
               showAlways: true,
-              label: "Corrente",
+              label: "Total",
               fontSize: "16px",
               fontWeight: "400",
             },
@@ -39,7 +39,7 @@ const ChartThree: React.FC = () => {
               show: true,
               fontSize: "28px",
               fontWeight: "bold",
-              formatter: (value) => formatCurrentWithSIPrefix(Number(value)),
+              formatter: (value) => standardFormat(Number(value)),
             },
           },
         },
