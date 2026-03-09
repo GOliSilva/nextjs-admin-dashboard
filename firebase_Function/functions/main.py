@@ -83,6 +83,19 @@ CT_PT_SCALED_FIELDS = {
     "Ercr",
 }
 
+RTC_SCALED_FIELDS = {
+    "Ia",
+    "Ib",
+    "Ic",
+    "In",
+}
+
+RTP_SCALED_FIELDS = {
+    "Va",
+    "Vb",
+    "Vc",
+}
+
 
 def _get_db():
     global _db
@@ -205,19 +218,27 @@ def _valid_ratio_or_default(value: Any, default: float = 1.0) -> float:
     return default
 
 
-def _apply_ct_pt_scaling(payload_numeric: dict) -> dict:
+def _apply_measurement_scaling(payload_numeric: dict) -> dict:
     rtc_ratio = _valid_ratio_or_default(payload_numeric.get("RTC"), default=1.0)
     rtp_ratio = _valid_ratio_or_default(payload_numeric.get("RTP"), default=1.0)
     scaling_factor = rtc_ratio * rtp_ratio
 
-    if scaling_factor == 1.0:
+    if rtc_ratio == 1.0 and rtp_ratio == 1.0 and scaling_factor == 1.0:
         return payload_numeric
 
     scaled_payload = dict(payload_numeric)
-    for key in CT_PT_SCALED_FIELDS:
-        value = scaled_payload.get(key)
-        if isinstance(value, (int, float)):
-            scaled_payload[key] = float(value) * scaling_factor
+
+    def _scale_fields(fields: set[str], factor: float):
+        if factor == 1.0:
+            return
+        for key in fields:
+            value = scaled_payload.get(key)
+            if isinstance(value, (int, float)):
+                scaled_payload[key] = float(value) * factor
+
+    _scale_fields(RTC_SCALED_FIELDS, rtc_ratio)
+    _scale_fields(RTP_SCALED_FIELDS, rtp_ratio)
+    _scale_fields(CT_PT_SCALED_FIELDS, scaling_factor)
 
     return scaled_payload
 
@@ -350,7 +371,7 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
     device_id = _extract_device_id(measurements)
     device_name = _extract_device_name(measurements)
     payload_numeric = _only_numeric_fields(_coerce_numbers(measurements))
-    payload_numeric = _apply_ct_pt_scaling(payload_numeric)
+    payload_numeric = _apply_measurement_scaling(payload_numeric)
     payload_weekly_summable = _only_weekly_summable_fields(payload_numeric)
 
     event_time = _coerce_event_time(getattr(event, "time", None))
