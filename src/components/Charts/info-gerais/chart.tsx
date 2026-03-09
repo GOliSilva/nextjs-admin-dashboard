@@ -3,6 +3,7 @@
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
+import { formatCurrentWithSIPrefix } from "@/lib/format-current";
 import { useState } from "react";
 
 type PropsType = {
@@ -59,19 +60,9 @@ export function InfoGeraisLineChart({ series, colors }: PropsType) {
   );
   const xTickAmount =
     dataPoints > 0 ? Math.min(maxXTicks, dataPoints) : maxXTicks;
-
-  const getUnitForSeries = (seriesName?: string) => {
-    const name = seriesName?.toLowerCase() ?? "";
-
-    if (name.includes("reativa")) {
-      return "Var";
-    }
-
-    if (name.includes("complexa")) {
-      return "Va";
-    }
-
-    return "W";
+  const formatCurrentValue = (value: number | string) => {
+    const numeric = typeof value === "number" ? value : Number.parseFloat(value);
+    return formatCurrentWithSIPrefix(Number.isFinite(numeric) ? numeric : 0);
   };
 
   const options: ApexOptions = {
@@ -146,11 +137,7 @@ export function InfoGeraisLineChart({ series, colors }: PropsType) {
         formatter: formatTooltipX,
       },
       y: {
-        formatter: (value, { seriesIndex, w }) => {
-          const seriesName = w?.config?.series?.[seriesIndex]?.name;
-          const unit = getUnitForSeries(seriesName);
-          return `${value.toFixed(2)} ${unit}`;
-        },
+        formatter: formatCurrentValue,
       },
     },
     xaxis: {
@@ -164,6 +151,11 @@ export function InfoGeraisLineChart({ series, colors }: PropsType) {
       },
       labels: {
         formatter: formatAxisLabel,
+      },
+    },
+    yaxis: {
+      labels: {
+        formatter: formatCurrentValue,
       },
     },
   };

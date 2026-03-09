@@ -14,6 +14,7 @@ import {
 import { useDeviceSelection } from "@/contexts/device-selection-context";
 import { useFirebaseData } from "@/contexts/firebase-data-context";
 import { getDataForGraph } from "@/lib/firebase";
+import { formatCurrentWithSIPrefix } from "@/lib/format-current";
 import { cn } from "@/lib/utils";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
@@ -420,12 +421,8 @@ export function HistoricoView() {
     };
   }, [filteredHistory, hasVariableFilter]);
 
-  const formatValue = (value: number, unit: string) => {
-    const formatted = value.toLocaleString("pt-BR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    return unit ? `${formatted} ${unit}` : formatted;
+  const formatValue = (value: number, _unit: string) => {
+    return formatCurrentWithSIPrefix(value);
   };
 
   return (

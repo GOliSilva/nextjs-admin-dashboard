@@ -1,5 +1,5 @@
 import { PeriodPicker } from "@/components/period-picker";
-import { standardFormat } from "@/lib/format-number";
+import { formatCurrentWithSIPrefix } from "@/lib/format-current";
 import { cn } from "@/lib/utils";
 import { getConsumoPorFaseLinha } from "@/services/consumo-por-fase-linha.services";
 import { PaymentsOverviewChart } from "@/components/Charts/payments-overview/chart";
@@ -24,7 +24,9 @@ export async function ConsumoPorFaseLine({
 
   const summaryItems = series.map((item) => ({
     label: item.name,
-    value: `${standardFormat(item.data.reduce((acc, point) => acc + point.y, 0))} kWh`,
+    value: formatCurrentWithSIPrefix(
+      item.data.reduce((acc, point) => acc + point.y, 0),
+    ),
   }));
   const containerClassName = cn(
     "grid gap-2 rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card",

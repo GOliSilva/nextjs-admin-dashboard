@@ -3,6 +3,7 @@ import React from "react";
 import ReactApexChart from "react-apexcharts";
 import DefaultSelectOption from "@/components/SelectOption/DefaultSelectOption";
 import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
+import { formatCurrentWithSIPrefix } from "@/lib/format-current";
 
 const ChartTwo: React.FC = () => {
   const series = [
@@ -74,6 +75,16 @@ const ChartTwo: React.FC = () => {
 
     xaxis: {
       categories: ["M", "T", "W", "T", "F", "S", "S"],
+    },
+    yaxis: {
+      labels: {
+        formatter: (value) => formatCurrentWithSIPrefix(Number(value)),
+      },
+    },
+    tooltip: {
+      y: {
+        formatter: (value) => formatCurrentWithSIPrefix(Number(value)),
+      },
     },
     legend: {
       position: "top",

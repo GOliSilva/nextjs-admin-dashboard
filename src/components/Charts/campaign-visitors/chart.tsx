@@ -3,6 +3,7 @@
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
+import { formatCurrentWithSIPrefix } from "@/lib/format-current";
 
 type PropsType = {
   data: {
@@ -64,12 +65,20 @@ export function CampaignVisitorsChart({ data }: PropsType) {
         },
       },
     },
+    yaxis: {
+      labels: {
+        formatter: (val) => formatCurrentWithSIPrefix(Number(val)),
+      },
+    },
     fill: {
       opacity: 1,
     },
     tooltip: {
       x: {
         show: false,
+      },
+      y: {
+        formatter: (val) => formatCurrentWithSIPrefix(Number(val)),
       },
     },
   };

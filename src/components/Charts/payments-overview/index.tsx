@@ -1,5 +1,5 @@
 import { PeriodPicker } from "@/components/period-picker";
-import { standardFormat } from "@/lib/format-number";
+import { formatCurrentWithSIPrefix } from "@/lib/format-current";
 import { cn } from "@/lib/utils";
 import { getPaymentsOverviewData } from "@/services/charts.services";
 import { getConsumoSeries, type ConsumoPeriod } from "@/services/consumo.services";
@@ -130,10 +130,9 @@ export async function PaymentsOverview({
       ];
     }
 
-    const unit = "kWh";
     summaryItems = series.map((item) => ({
       label: item.name,
-      value: `${standardFormat(sumSeries(item))} ${unit}`,
+      value: formatCurrentWithSIPrefix(sumSeries(item)),
     }));
   } else {
     const data = await getPaymentsOverviewData(resolvedTimeFrame);
@@ -152,11 +151,11 @@ export async function PaymentsOverview({
     summaryItems = [
       {
         label: "Received Amount",
-        value: `$${standardFormat(sumSeries(series[0]))}`,
+        value: formatCurrentWithSIPrefix(sumSeries(series[0])),
       },
       {
         label: "Due Amount",
-        value: `$${standardFormat(sumSeries(series[1]))}`,
+        value: formatCurrentWithSIPrefix(sumSeries(series[1])),
       },
     ];
   }

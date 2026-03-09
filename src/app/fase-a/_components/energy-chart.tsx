@@ -3,6 +3,7 @@
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
+import { formatCurrentWithSIPrefix } from "@/lib/format-current";
 
 const Chart = dynamic(() => import("react-apexcharts"), {
     ssr: false,
@@ -73,6 +74,16 @@ export function EnergyChart({ categories, anoAtual, anoAnterior }: PropsType) {
             },
             axisTicks: {
                 show: false,
+            },
+        },
+        yaxis: {
+            labels: {
+                formatter: (value) => formatCurrentWithSIPrefix(Number(value)),
+            },
+        },
+        tooltip: {
+            y: {
+                formatter: (value) => formatCurrentWithSIPrefix(Number(value)),
             },
         },
         legend: {

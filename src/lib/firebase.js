@@ -26,6 +26,7 @@ const DEFAULT_DEVICE_ID = process.env.NEXT_PUBLIC_DEVICE_ID ?? "device-unknown"
 const MAX_DOCS_PER_READ = 1000
 const GRAPH_POLLING_INTERVAL_MS = 60 * 60 * 1000 // 1 hora em milissegundos
 const HOUR_IN_MS = 60 * 60 * 1000
+const graphStreams = new Map()
 
 function resolveDeviceId(deviceId) {
   const text = String(deviceId ?? "").trim()
@@ -236,6 +237,297 @@ function getBucketLimitForRange(startDate, endDate) {
   return Math.max(1, Math.min(MAX_DOCS_PER_READ, total))
 }
 
+function getGraphStreamListenerCount(stream) {
+  let count = 0
+  stream.variableListeners.forEach((listeners) => {
+    count += listeners.size
+  })
+  return count
+}
+
+function hasGraphStreamListeners(stream) {
+  return getGraphStreamListenerCount(stream) > 0
+}
+
+function buildGraphStreamKey(resolvedDeviceId, normalizedStart, normalizedEnd) {
+  const startMs = toMillis(normalizedStart)
+  const endMs = toMillis(normalizedEnd)
+  return `${resolvedDeviceId}|${startMs ?? "null"}|${endMs ?? "null"}`
+}
+
+function createGraphStream(resolvedDeviceId, normalizedStart, normalizedEnd) {
+  return {
+    resolvedDeviceId,
+    normalizedStart,
+    normalizedEnd,
+    startMs: toMillis(normalizedStart),
+    endMs: toMillis(normalizedEnd),
+    dailyRef: collection(db, DEVICES_COLLECTION, resolvedDeviceId, DAILY_COLLECTION),
+    bucketCache: new Map(),
+    pointsCache: new Map(),
+    variableListeners: new Map(),
+    lastFetchedBucketStartMs: null,
+    initialFetchPromise: null,
+    incrementalFetchPromise: null,
+    intervalId: null,
+    destroyed: false,
+  }
+}
+
+function notifyGraphStreamError(stream) {
+  stream.variableListeners.forEach((listeners) => {
+    listeners.forEach((listener) => {
+      try {
+        listener([])
+      } catch (error) {
+        console.error(error)
+      }
+    })
+  })
+}
+
+function upsertGraphStreamBuckets(stream, docs) {
+  let changed = false
+
+  docs.forEach((docSnap) => {
+    if (!docSnap?.id) {
+      return
+    }
+
+    const data =
+      typeof docSnap?.data === "function"
+        ? docSnap.data() || {}
+        : docSnap?.data || {}
+
+    stream.bucketCache.set(docSnap.id, { id: docSnap.id, data })
+    changed = true
+
+    const bucketStartMs = toMillis(data.bucketStart)
+    if (
+      bucketStartMs != null &&
+      (stream.lastFetchedBucketStartMs == null ||
+        bucketStartMs > stream.lastFetchedBucketStartMs)
+    ) {
+      stream.lastFetchedBucketStartMs = bucketStartMs
+    }
+  })
+
+  if (changed) {
+    stream.pointsCache.clear()
+  }
+
+  return changed
+}
+
+function getGraphStreamPoints(stream, variableName) {
+  if (stream.pointsCache.has(variableName)) {
+    return stream.pointsCache.get(variableName)
+  }
+
+  const docs = Array.from(stream.bucketCache.values())
+  const points = extractPointsFromBuckets(
+    docs,
+    variableName,
+    stream.startMs,
+    stream.endMs,
+  )
+
+  stream.pointsCache.set(variableName, points)
+  return points
+}
+
+function publishGraphStreamVariable(stream, variableName) {
+  const listeners = stream.variableListeners.get(variableName)
+  if (!listeners || listeners.size === 0) {
+    return
+  }
+
+  const points = getGraphStreamPoints(stream, variableName)
+  listeners.forEach((listener) => {
+    try {
+      listener(points)
+    } catch (error) {
+      console.error(error)
+    }
+  })
+}
+
+function publishGraphStreamAll(stream) {
+  stream.variableListeners.forEach((_listeners, variableName) => {
+    publishGraphStreamVariable(stream, variableName)
+  })
+}
+
+function runGraphStreamInitialFetch(stream) {
+  if (stream.destroyed) {
+    return Promise.resolve()
+  }
+
+  if (stream.initialFetchPromise) {
+    return stream.initialFetchPromise
+  }
+
+  stream.initialFetchPromise = (async () => {
+    try {
+      const constraints = [
+        orderBy("bucketStart", "desc"),
+        limit(getBucketLimitForRange(stream.normalizedStart, stream.normalizedEnd)),
+      ]
+
+      if (stream.normalizedStart) {
+        constraints.push(where("bucketStart", ">=", stream.normalizedStart))
+      }
+
+      if (stream.normalizedEnd) {
+        constraints.push(where("bucketStart", "<=", stream.normalizedEnd))
+      }
+
+      const q = query(stream.dailyRef, ...constraints)
+      const snap = await getDocs(q)
+
+      if (stream.destroyed) {
+        return
+      }
+
+      upsertGraphStreamBuckets(stream, snap.docs)
+      publishGraphStreamAll(stream)
+    } catch (error) {
+      console.error(error)
+      if (!stream.destroyed) {
+        notifyGraphStreamError(stream)
+      }
+    } finally {
+      stream.initialFetchPromise = null
+    }
+  })()
+
+  return stream.initialFetchPromise
+}
+
+function runGraphStreamIncrementalFetch(stream) {
+  if (stream.destroyed) {
+    return Promise.resolve()
+  }
+
+  if (stream.incrementalFetchPromise) {
+    return stream.incrementalFetchPromise
+  }
+
+  stream.incrementalFetchPromise = (async () => {
+    try {
+      if (stream.lastFetchedBucketStartMs == null) {
+        await runGraphStreamInitialFetch(stream)
+        return
+      }
+
+      const deltaConstraints = [
+        orderBy("bucketStart", "asc"),
+        startAfter(new Date(stream.lastFetchedBucketStartMs)),
+        limit(MAX_DOCS_PER_READ),
+      ]
+
+      if (stream.normalizedEnd) {
+        deltaConstraints.push(where("bucketStart", "<=", stream.normalizedEnd))
+      }
+
+      const deltaQuery = query(stream.dailyRef, ...deltaConstraints)
+      const deltaSnap = await getDocs(deltaQuery)
+      let hasChanges = upsertGraphStreamBuckets(stream, deltaSnap.docs)
+
+      // Refresh recent buckets: readings may still be appended around hour boundaries.
+      const latestConstraints = [orderBy("bucketStart", "desc"), limit(2)]
+      if (stream.normalizedStart) {
+        latestConstraints.push(where("bucketStart", ">=", stream.normalizedStart))
+      }
+      if (stream.normalizedEnd) {
+        latestConstraints.push(where("bucketStart", "<=", stream.normalizedEnd))
+      }
+
+      const latestQuery = query(stream.dailyRef, ...latestConstraints)
+      const latestSnap = await getDocs(latestQuery)
+      hasChanges = upsertGraphStreamBuckets(stream, latestSnap.docs) || hasChanges
+
+      if (!stream.destroyed && hasChanges) {
+        publishGraphStreamAll(stream)
+      }
+    } catch (error) {
+      console.error(error)
+      if (!stream.destroyed) {
+        notifyGraphStreamError(stream)
+      }
+    } finally {
+      stream.incrementalFetchPromise = null
+    }
+  })()
+
+  return stream.incrementalFetchPromise
+}
+
+function startGraphStream(stream) {
+  if (stream.destroyed) {
+    return
+  }
+
+  if (stream.intervalId != null) {
+    return
+  }
+
+  runGraphStreamInitialFetch(stream)
+  stream.intervalId = setInterval(() => {
+    if (stream.destroyed || !hasGraphStreamListeners(stream)) {
+      return
+    }
+    runGraphStreamIncrementalFetch(stream)
+  }, GRAPH_POLLING_INTERVAL_MS)
+}
+
+function cleanupGraphStream(streamKey, stream) {
+  if (stream.intervalId != null) {
+    clearInterval(stream.intervalId)
+    stream.intervalId = null
+  }
+
+  stream.destroyed = true
+  stream.variableListeners.clear()
+  stream.pointsCache.clear()
+  stream.bucketCache.clear()
+  graphStreams.delete(streamKey)
+}
+
+function subscribeGraphStreamVariable(streamKey, stream, variableName, callback) {
+  if (typeof callback !== "function") {
+    return () => {}
+  }
+
+  let listeners = stream.variableListeners.get(variableName)
+  if (!listeners) {
+    listeners = new Set()
+    stream.variableListeners.set(variableName, listeners)
+  }
+  listeners.add(callback)
+
+  if (stream.bucketCache.size > 0) {
+    publishGraphStreamVariable(stream, variableName)
+  }
+
+  startGraphStream(stream)
+
+  return () => {
+    const currentListeners = stream.variableListeners.get(variableName)
+    if (currentListeners) {
+      currentListeners.delete(callback)
+      if (currentListeners.size === 0) {
+        stream.variableListeners.delete(variableName)
+        stream.pointsCache.delete(variableName)
+      }
+    }
+
+    if (!hasGraphStreamListeners(stream)) {
+      cleanupGraphStream(streamKey, stream)
+    }
+  }
+}
+
 function getDataForGraph(
   nameOfVariable = "Va",
   dataInicial,
@@ -245,114 +537,28 @@ function getDataForGraph(
   deviceId = DEFAULT_DEVICE_ID,
 ) {
   void _limitCount
+
   const normalizedStart = normalizeStartOfDay(dataInicial)
   const normalizedEnd = normalizeEndOfDay(dataFinal)
-  const bucketCache = new Map()
-  let lastFetchedBucketStartMs = null
+  const resolvedDeviceId = resolveDeviceId(deviceId)
+  const streamKey = buildGraphStreamKey(
+    resolvedDeviceId,
+    normalizedStart,
+    normalizedEnd,
+  )
 
-  const publishPoints = () => {
-    const startMs = toMillis(normalizedStart)
-    const endMs = toMillis(normalizedEnd)
-    const docs = Array.from(bucketCache.values())
-    const points = extractPointsFromBuckets(docs, nameOfVariable, startMs, endMs)
-
-    if (typeof callback === "function") {
-      callback(points)
-    }
+  let stream = graphStreams.get(streamKey)
+  if (!stream) {
+    stream = createGraphStream(resolvedDeviceId, normalizedStart, normalizedEnd)
+    graphStreams.set(streamKey, stream)
   }
 
-  const upsertBuckets = (docs) => {
-    docs.forEach((docSnap) => {
-      if (!docSnap?.id) {
-        return
-      }
-
-      const data = docSnap.data?.() || {}
-      bucketCache.set(docSnap.id, { id: docSnap.id, data })
-
-      const bucketStartMs = toMillis(data.bucketStart)
-      if (bucketStartMs != null && (lastFetchedBucketStartMs == null || bucketStartMs > lastFetchedBucketStartMs)) {
-        lastFetchedBucketStartMs = bucketStartMs
-      }
-    })
-  }
-
-  const fetchInitialData = async () => {
-    try {
-      const dailyRef = collection(db, DEVICES_COLLECTION, resolveDeviceId(deviceId), DAILY_COLLECTION)
-      const constraints = [
-        orderBy("bucketStart", "desc"),
-        limit(getBucketLimitForRange(normalizedStart, normalizedEnd)),
-      ]
-
-      if (normalizedStart) {
-        constraints.push(where("bucketStart", ">=", normalizedStart))
-      }
-
-      if (normalizedEnd) {
-        constraints.push(where("bucketStart", "<=", normalizedEnd))
-      }
-
-      const q = query(dailyRef, ...constraints)
-      const snap = await getDocs(q)
-      upsertBuckets(snap.docs)
-      publishPoints()
-    } catch (error) {
-      console.error(error)
-      if (typeof callback === "function") {
-        callback([])
-      }
-    }
-  }
-
-  const fetchIncrementalData = async () => {
-    try {
-      const dailyRef = collection(db, DEVICES_COLLECTION, resolveDeviceId(deviceId), DAILY_COLLECTION)
-
-      if (lastFetchedBucketStartMs == null) {
-        await fetchInitialData()
-        return
-      }
-
-      const deltaConstraints = [
-        orderBy("bucketStart", "asc"),
-        startAfter(new Date(lastFetchedBucketStartMs)),
-        limit(MAX_DOCS_PER_READ),
-      ]
-
-      if (normalizedEnd) {
-        deltaConstraints.push(where("bucketStart", "<=", normalizedEnd))
-      }
-
-      const deltaQuery = query(dailyRef, ...deltaConstraints)
-      const deltaSnap = await getDocs(deltaQuery)
-      upsertBuckets(deltaSnap.docs)
-
-      // Refresh recent buckets: readings may still be appended around hour boundaries.
-      const latestConstraints = [orderBy("bucketStart", "desc"), limit(2)]
-      if (normalizedStart) {
-        latestConstraints.push(where("bucketStart", ">=", normalizedStart))
-      }
-      if (normalizedEnd) {
-        latestConstraints.push(where("bucketStart", "<=", normalizedEnd))
-      }
-
-      const latestQuery = query(dailyRef, ...latestConstraints)
-      const latestSnap = await getDocs(latestQuery)
-      upsertBuckets(latestSnap.docs)
-      publishPoints()
-    } catch (error) {
-      console.error(error)
-      if (typeof callback === "function") {
-        callback([])
-      }
-    }
-  }
-
-  fetchInitialData()
-  const intervalId = setInterval(fetchIncrementalData, GRAPH_POLLING_INTERVAL_MS)
-
-  return () => clearInterval(intervalId)
+  return subscribeGraphStreamVariable(
+    streamKey,
+    stream,
+    nameOfVariable,
+    callback,
+  )
 }
 
 export { app, auth, db, getMostRecentData, getDataForGraph }

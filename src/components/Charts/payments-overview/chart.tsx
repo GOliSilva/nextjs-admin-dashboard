@@ -3,6 +3,7 @@
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { apexSeriesAnimationPreset } from "@/lib/apex-animations";
+import { formatCurrentWithSIPrefix } from "@/lib/format-current";
 import { useEffect, useState } from "react";
 
 type PropsType = {
@@ -168,6 +169,11 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
   const xTickAmount =
     dataPoints > 0 ? Math.min(maxXTicks, dataPoints) : maxXTicks;
 
+  const formatCurrentValue = (value: number | string) => {
+    const numeric = typeof value === "number" ? value : Number.parseFloat(value);
+    return formatCurrentWithSIPrefix(Number.isFinite(numeric) ? numeric : 0);
+  };
+
   const options: ApexOptions = {
     legend: {
       show: false,
@@ -236,6 +242,9 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
         show: true,
         formatter: formatTooltipX,
       },
+      y: {
+        formatter: formatCurrentValue,
+      },
     },
     xaxis: {
       tickAmount: xTickAmount,
@@ -250,6 +259,11 @@ export function PaymentsOverviewChart({ series, colors }: PropsType) {
         rotate: -45,
         rotateAlways: true,
         formatter: formatAxisLabel,
+      },
+    },
+    yaxis: {
+      labels: {
+        formatter: formatCurrentValue,
       },
     },
   };
