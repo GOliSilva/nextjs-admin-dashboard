@@ -27,6 +27,8 @@ const METRIC_UNITS: Record<FaseAMetrics, string> = {
     tensao: "V",
     potencia: "W",
     fator_potencia: "",
+    energia: "kWh",
+    fase: "",
 };
 
 const TIME_FRAME_MAP: Record<string, TimeFrame> = {
