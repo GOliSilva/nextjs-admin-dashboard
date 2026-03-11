@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 type FamilyKey = "V" | "I";
-type PhaseKey = "A" | "B" | "C";
+type PhaseKey = "A" | "B" | "C" | "N";
 
 export type DiagramViewMode = "voltage" | "current" | "overlay";
 
@@ -108,11 +108,25 @@ export function PhasorDiagram({ vectors, viewMode, maxByFamily, className }: Pro
           <line x1={-CHART_RADIUS} y1={0} x2={CHART_RADIUS} y2={0} stroke="currentColor" className="text-dark/30 dark:text-white/30" strokeWidth={1} />
           <line x1={0} y1={-CHART_RADIUS} x2={0} y2={CHART_RADIUS} stroke="currentColor" className="text-dark/30 dark:text-white/30" strokeWidth={1} />
 
-          {drawableVectors.map((vector) => {
+          {drawableVectors.map((vector, index) => {
             const labelOffsetX = vector.x >= 0 ? 8 : -8;
             const labelOffsetY = vector.y >= 0 ? 12 : -10;
+            const markerId = `phasor-arrow-${index}`;
             return (
               <g key={`vector-${vector.key}`}>
+                <defs>
+                  <marker
+                    id={markerId}
+                    viewBox="0 0 10 10"
+                    refX={8.5}
+                    refY={5}
+                    markerWidth={5}
+                    markerHeight={5}
+                    orient="auto-start-reverse"
+                  >
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill={vector.color} />
+                  </marker>
+                </defs>
                 <line
                   x1={0}
                   y1={0}
@@ -122,8 +136,8 @@ export function PhasorDiagram({ vectors, viewMode, maxByFamily, className }: Pro
                   strokeWidth={1.6}
                   strokeLinecap="round"
                   strokeDasharray={vector.dashed ? "6 4" : undefined}
+                  markerEnd={`url(#${markerId})`}
                 />
-                <circle cx={vector.x} cy={vector.y} r={2.5} fill={vector.color} />
                 <text
                   x={vector.x + labelOffsetX}
                   y={vector.y + labelOffsetY}
@@ -151,6 +165,10 @@ export function PhasorDiagram({ vectors, viewMode, maxByFamily, className }: Pro
         <span className="inline-flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-rose-500" />
           Fase C
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-2 rounded-full bg-slate-500" />
+          Neutro
         </span>
         {viewMode === "overlay" ? (
           <span className="inline-flex items-center gap-1.5">

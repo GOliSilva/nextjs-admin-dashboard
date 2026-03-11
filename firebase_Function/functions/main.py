@@ -1,5 +1,6 @@
 import ast
 import json
+import math
 import traceback
 from datetime import datetime, timezone
 from typing import Any
@@ -7,6 +8,7 @@ from typing import Any
 from firebase_functions import pubsub_fn
 from firebase_functions.options import set_global_options
 from firebase_admin import firestore, initialize_app
+from google.api_core import exceptions as gcloud_exceptions
 
 set_global_options(max_instances=10)
 
@@ -20,6 +22,11 @@ DAILY_AGG_COLLECTION = "daily_agg"
 WEEKLY_COLLECTION = "weekly"
 STATE_COLLECTION = "state"
 DAILY_AGG_ERROR_FIELD = "dailyAggError"
+GLOBAL_MIN_FIELD = "globalMin"
+GLOBAL_MAX_FIELD = "globalMax"
+GLOBAL_AVG_FIELD = "globalAvg"
+GLOBAL_SUM_FIELD = "globalSum"
+GLOBAL_COUNT_FIELD = "globalCount"
 
 WEEKLY_SUMMABLE_FIELDS = {
     "Va",  # tensao de fase A
@@ -99,12 +106,341 @@ RTP_SCALED_FIELDS = {
     "Vc",
 }
 
+ANGLE_FIELDS = {
+    "angVa",
+    "angVb",
+    "angVc",
+    "angIa",
+    "angIb",
+    "angIc",
+}
+
 
 def _get_db():
     global _db
     if _db is None:
         _db = firestore.client()
     return _db
+
+
+def _coerce_update_time(value: Any) -> datetime | None:
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+
+    to_datetime = getattr(value, "ToDatetime", None)
+    if callable(to_datetime):
+        try:
+            parsed = to_datetime()
+            if isinstance(parsed, datetime):
+                if parsed.tzinfo is None:
+                    return parsed.replace(tzinfo=timezone.utc)
+                return parsed.astimezone(timezone.utc)
+        except Exception:
+            return None
+
+    return None
+
+
+def _safe_float(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+
+    if isinstance(value, (int, float)):
+        number = float(value)
+    elif isinstance(value, str):
+        normalized = value.strip().replace(",", ".")
+        if not normalized:
+            return None
+        try:
+            number = float(normalized)
+        except ValueError:
+            return None
+    else:
+        return None
+
+    if not math.isfinite(number):
+        return None
+
+    return number
+
+
+def _sanitize_number_map(value: Any) -> dict[str, float]:
+    if not isinstance(value, dict):
+        return {}
+
+    sanitized: dict[str, float] = {}
+    for key, raw_value in value.items():
+        if not isinstance(key, str):
+            continue
+        number = _safe_float(raw_value)
+        if number is None:
+            continue
+        sanitized[key] = number
+
+    return sanitized
+
+
+def _copy_number_map(value: dict[str, float]) -> dict[str, float]:
+    return {key: float(number) for key, number in value.items()}
+
+
+def _empty_state_stats() -> dict[str, Any]:
+    return {
+        GLOBAL_MIN_FIELD: {},
+        GLOBAL_MAX_FIELD: {},
+        GLOBAL_AVG_FIELD: {},
+        GLOBAL_SUM_FIELD: {},
+        GLOBAL_COUNT_FIELD: {},
+        "readCount": 0.0,
+        "updateTime": None,
+    }
+
+
+def _clone_state_stats(stats: dict[str, Any]) -> dict[str, Any]:
+    return {
+        GLOBAL_MIN_FIELD: _copy_number_map(stats.get(GLOBAL_MIN_FIELD, {}) or {}),
+        GLOBAL_MAX_FIELD: _copy_number_map(stats.get(GLOBAL_MAX_FIELD, {}) or {}),
+        GLOBAL_AVG_FIELD: _copy_number_map(stats.get(GLOBAL_AVG_FIELD, {}) or {}),
+        GLOBAL_SUM_FIELD: _copy_number_map(stats.get(GLOBAL_SUM_FIELD, {}) or {}),
+        GLOBAL_COUNT_FIELD: _copy_number_map(stats.get(GLOBAL_COUNT_FIELD, {}) or {}),
+        "readCount": _safe_float(stats.get("readCount")) or 0.0,
+        "updateTime": _coerce_update_time(stats.get("updateTime")),
+    }
+
+
+def _derive_read_count(global_count: dict[str, float]) -> float:
+    if not global_count:
+        return 0.0
+
+    return max(0.0, max(global_count.values()))
+
+
+def _extract_state_stats_from_doc(snapshot: firestore.DocumentSnapshot) -> dict[str, Any]:
+    if not snapshot.exists:
+        return _empty_state_stats()
+
+    data = snapshot.to_dict() or {}
+    global_min = _sanitize_number_map(data.get(GLOBAL_MIN_FIELD))
+    global_max = _sanitize_number_map(data.get(GLOBAL_MAX_FIELD))
+    global_avg = _sanitize_number_map(data.get(GLOBAL_AVG_FIELD))
+    global_sum = _sanitize_number_map(data.get(GLOBAL_SUM_FIELD))
+    global_count = _sanitize_number_map(data.get(GLOBAL_COUNT_FIELD))
+
+    for key, count_value in global_count.items():
+        if key in global_sum:
+            continue
+        if key not in global_avg:
+            continue
+        global_sum[key] = global_avg[key] * count_value
+
+    return {
+        GLOBAL_MIN_FIELD: global_min,
+        GLOBAL_MAX_FIELD: global_max,
+        GLOBAL_AVG_FIELD: global_avg,
+        GLOBAL_SUM_FIELD: global_sum,
+        GLOBAL_COUNT_FIELD: global_count,
+        "readCount": _derive_read_count(global_count),
+        "updateTime": _coerce_update_time(snapshot.update_time),
+    }
+
+
+def _load_state_stats(
+    latest_ref: firestore.DocumentReference,
+) -> dict[str, Any]:
+    snapshot = latest_ref.get()
+    state_stats = _extract_state_stats_from_doc(snapshot)
+    return _clone_state_stats(state_stats)
+
+
+def _compute_next_state_stats(
+    state_stats: dict[str, Any],
+    payload_numeric: dict[str, float],
+) -> dict[str, Any]:
+    global_min = _copy_number_map(state_stats.get(GLOBAL_MIN_FIELD, {}) or {})
+    global_max = _copy_number_map(state_stats.get(GLOBAL_MAX_FIELD, {}) or {})
+    global_avg = _copy_number_map(state_stats.get(GLOBAL_AVG_FIELD, {}) or {})
+    global_sum = _copy_number_map(state_stats.get(GLOBAL_SUM_FIELD, {}) or {})
+    global_count = _copy_number_map(state_stats.get(GLOBAL_COUNT_FIELD, {}) or {})
+
+    incoming_values: dict[str, float] = {}
+    for key, raw_value in payload_numeric.items():
+        number = _safe_float(raw_value)
+        if number is None:
+            continue
+        incoming_values[key] = number
+
+    tracked_keys = (
+        set(global_min.keys())
+        | set(global_max.keys())
+        | set(global_avg.keys())
+        | set(global_sum.keys())
+        | set(global_count.keys())
+        | set(incoming_values.keys())
+    )
+
+    previous_read_count = _safe_float(state_stats.get("readCount"))
+    if previous_read_count is None:
+        previous_read_count = _derive_read_count(global_count)
+    previous_read_count = max(0.0, previous_read_count)
+    next_read_count = previous_read_count + 1.0
+
+    for key in tracked_keys:
+        had_metric = (
+            key in global_min
+            or key in global_max
+            or key in global_avg
+            or key in global_sum
+            or key in global_count
+        )
+
+        previous_metric_count = _safe_float(global_count.get(key))
+        if previous_metric_count is None:
+            previous_metric_count = previous_read_count if had_metric else 0.0
+        previous_metric_count = max(0.0, previous_metric_count)
+
+        next_metric_count = (
+            previous_metric_count + 1.0 if had_metric else next_read_count
+        )
+        global_count[key] = next_metric_count
+
+        previous_sum = _safe_float(global_sum.get(key))
+        if previous_sum is None:
+            previous_sum = 0.0
+
+        incoming_value = incoming_values.get(key)
+        if incoming_value is not None:
+            global_sum[key] = previous_sum + incoming_value
+            current_min = _safe_float(global_min.get(key))
+            current_max = _safe_float(global_max.get(key))
+            global_min[key] = (
+                incoming_value
+                if current_min is None
+                else min(current_min, incoming_value)
+            )
+            global_max[key] = (
+                incoming_value
+                if current_max is None
+                else max(current_max, incoming_value)
+            )
+        else:
+            global_sum[key] = previous_sum
+
+        if next_metric_count > 0:
+            global_avg[key] = global_sum[key] / next_metric_count
+        else:
+            global_avg[key] = 0.0
+
+    return {
+        GLOBAL_MIN_FIELD: global_min,
+        GLOBAL_MAX_FIELD: global_max,
+        GLOBAL_AVG_FIELD: global_avg,
+        GLOBAL_SUM_FIELD: global_sum,
+        GLOBAL_COUNT_FIELD: global_count,
+        "readCount": next_read_count,
+        "updateTime": _coerce_update_time(state_stats.get("updateTime")),
+    }
+
+
+def _build_latest_state_payload(
+    *,
+    device_id: str,
+    device_name: str | None,
+    payload_numeric: dict[str, float],
+    event_time: datetime,
+    state_stats: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "deviceId": device_id,
+        "deviceName": device_name,
+        **payload_numeric,
+        "eventAt": event_time,
+        "createdAt": firestore.SERVER_TIMESTAMP,
+        GLOBAL_MIN_FIELD: _copy_number_map(state_stats.get(GLOBAL_MIN_FIELD, {}) or {}),
+        GLOBAL_MAX_FIELD: _copy_number_map(state_stats.get(GLOBAL_MAX_FIELD, {}) or {}),
+        GLOBAL_AVG_FIELD: _copy_number_map(state_stats.get(GLOBAL_AVG_FIELD, {}) or {}),
+        GLOBAL_SUM_FIELD: _copy_number_map(state_stats.get(GLOBAL_SUM_FIELD, {}) or {}),
+        GLOBAL_COUNT_FIELD: _copy_number_map(state_stats.get(GLOBAL_COUNT_FIELD, {}) or {}),
+    }
+
+
+def _is_state_write_conflict(error: Exception) -> bool:
+    return isinstance(
+        error,
+        (
+            gcloud_exceptions.FailedPrecondition,
+            gcloud_exceptions.Aborted,
+            gcloud_exceptions.NotFound,
+            gcloud_exceptions.AlreadyExists,
+        ),
+    )
+
+
+def _write_latest_state(
+    latest_ref: firestore.DocumentReference,
+    payload: dict[str, Any],
+    *,
+    expected_update_time: datetime | None,
+):
+    if expected_update_time is None:
+        return latest_ref.create(payload)
+
+    return latest_ref.update(
+        payload,
+        option=firestore.LastUpdateOption(expected_update_time),
+    )
+
+
+def _save_latest_state_with_global_stats(
+    *,
+    latest_ref: firestore.DocumentReference,
+    device_id: str,
+    device_name: str | None,
+    payload_numeric: dict[str, float],
+    event_time: datetime,
+):
+    baseline_state_stats = _load_state_stats(latest_ref)
+    next_state_stats = _compute_next_state_stats(baseline_state_stats, payload_numeric)
+    payload = _build_latest_state_payload(
+        device_id=device_id,
+        device_name=device_name,
+        payload_numeric=payload_numeric,
+        event_time=event_time,
+        state_stats=next_state_stats,
+    )
+
+    try:
+        write_result = _write_latest_state(
+            latest_ref,
+            payload,
+            expected_update_time=baseline_state_stats.get("updateTime"),
+        )
+    except Exception as error:
+        if not _is_state_write_conflict(error):
+            raise
+
+        refreshed_state_stats = _load_state_stats(latest_ref)
+        next_state_stats = _compute_next_state_stats(
+            refreshed_state_stats,
+            payload_numeric,
+        )
+        payload = _build_latest_state_payload(
+            device_id=device_id,
+            device_name=device_name,
+            payload_numeric=payload_numeric,
+            event_time=event_time,
+            state_stats=next_state_stats,
+        )
+        write_result = _write_latest_state(
+            latest_ref,
+            payload,
+            expected_update_time=refreshed_state_stats.get("updateTime"),
+        )
+
+    next_state_stats["updateTime"] = _coerce_update_time(
+        getattr(write_result, "update_time", None)
+    )
 
 
 def _parse_payload(raw_payload: Any):
@@ -244,6 +580,20 @@ def _apply_measurement_scaling(payload_numeric: dict) -> dict:
     _scale_fields(CT_PT_SCALED_FIELDS, scaling_factor)
 
     return scaled_payload
+
+
+def _normalize_angles(payload_numeric: dict) -> dict:
+    normalized_payload = dict(payload_numeric)
+
+    for key in ANGLE_FIELDS:
+        value = normalized_payload.get(key)
+        if not isinstance(value, (int, float)):
+            continue
+        angle = float(value)
+        if angle > 180.0:
+            normalized_payload[key] = angle - 360.0
+
+    return normalized_payload
 
 
 def _only_weekly_summable_fields(data: dict) -> dict:
@@ -423,8 +773,6 @@ def _save_daily_agg_reading(
     reading: dict,
     payload_numeric: dict,
 ):
-    snapshot = doc_ref.get(transaction=transaction)
-
     payload = {
         "deviceId": device_id,
         "deviceName": device_name,
@@ -437,9 +785,6 @@ def _save_daily_agg_reading(
         "last": payload_numeric,
         "readings": firestore.ArrayUnion([reading]),
     }
-
-    if not snapshot.exists:
-        payload["firstSampleAt"] = event_time
 
     transaction.set(doc_ref, payload, merge=True)
 
@@ -457,6 +802,7 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
     device_name = _extract_device_name(measurements)
     payload_numeric = _only_numeric_fields(_coerce_numbers(measurements))
     payload_numeric = _apply_measurement_scaling(payload_numeric)
+    payload_numeric = _normalize_angles(payload_numeric)
     payload_weekly_summable = _only_weekly_summable_fields(payload_numeric)
 
     event_time = _coerce_event_time(getattr(event, "time", None))
@@ -495,15 +841,12 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
     )
 
     latest_ref = device_ref.collection(STATE_COLLECTION).document("latest")
-    latest_ref.set(
-        {
-            "deviceId": device_id,
-            "deviceName": device_name,
-            **payload_numeric,
-            "eventAt": event_time,
-            "createdAt": firestore.SERVER_TIMESTAMP,
-        },
-        merge=True,
+    _save_latest_state_with_global_stats(
+        latest_ref=latest_ref,
+        device_id=device_id,
+        device_name=device_name,
+        payload_numeric=payload_numeric,
+        event_time=event_time,
     )
 
     saved_weekly = False

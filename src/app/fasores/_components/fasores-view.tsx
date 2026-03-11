@@ -22,6 +22,7 @@ const PHASE_COLORS = {
   A: "#10b981",
   B: "#f59e0b",
   C: "#f43f5e",
+  N: "#64748b",
 } as const;
 
 function toNumber(value: unknown) {
@@ -31,6 +32,63 @@ function toNumber(value: unknown) {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+function normalizeAngleDegrees(value: number) {
+  const normalized = value % 360;
+  return normalized < 0 ? normalized + 360 : normalized;
+}
+
+function toAbsoluteCurrentAngle(
+  currentRelativeAngle: number | null,
+  phaseVoltageAngle: number | null,
+) {
+  if (currentRelativeAngle == null || phaseVoltageAngle == null) return null;
+  return normalizeAngleDegrees(phaseVoltageAngle + currentRelativeAngle);
+}
+
+type PolarVector = {
+  magnitude: number | null;
+  angle: number | null;
+};
+
+function sumCurrentVectorsToNeutral(
+  ia: PolarVector,
+  ib: PolarVector,
+  ic: PolarVector,
+): PolarVector {
+  const vectors = [ia, ib, ic];
+  const hasInvalidVector = vectors.some(
+    (vector) =>
+      vector.magnitude == null ||
+      vector.angle == null ||
+      !Number.isFinite(vector.magnitude) ||
+      !Number.isFinite(vector.angle),
+  );
+  if (hasInvalidVector) {
+    return { magnitude: null, angle: null };
+  }
+
+  const [a, b, c] = vectors as Array<{ magnitude: number; angle: number }>;
+  const toRect = (vector: { magnitude: number; angle: number }) => {
+    const radians = (vector.angle * Math.PI) / 180;
+    return {
+      x: vector.magnitude * Math.cos(radians),
+      y: vector.magnitude * Math.sin(radians),
+    };
+  };
+
+  const aRect = toRect(a);
+  const bRect = toRect(b);
+  const cRect = toRect(c);
+
+  const x = aRect.x + bRect.x + cRect.x;
+  const y = aRect.y + bRect.y + cRect.y;
+
+  return {
+    magnitude: Math.hypot(x, y),
+    angle: normalizeAngleDegrees((Math.atan2(y, x) * 180) / Math.PI),
+  };
 }
 
 function toMillis(value: unknown) {
@@ -88,7 +146,7 @@ function getMaxByFamily(vectors: PhasorVector[], family: FamilyKey) {
 
 function formatAngle(value: number | null) {
   if (value == null) return "--";
-  return `${standardFormat(value)}Â°`;
+  return `${standardFormat(value)}°`;
 }
 
 function formatMagnitude(
@@ -111,13 +169,29 @@ export function FasoresView() {
   }, []);
 
   const vectors = useMemo<PhasorVector[]>(() => {
+    const angVa = toNumber(data?.angVa);
+    const angVb = toNumber(data?.angVb);
+    const angVc = toNumber(data?.angVc);
+    const iaMagnitude = toNumber(data?.Ia);
+    const ibMagnitude = toNumber(data?.Ib);
+    const icMagnitude = toNumber(data?.Ic);
+    const iaAngle = toAbsoluteCurrentAngle(toNumber(data?.angIa), angVa);
+    const ibAngle = toAbsoluteCurrentAngle(toNumber(data?.angIb), angVb);
+    const icAngle = toAbsoluteCurrentAngle(toNumber(data?.angIc), angVc);
+
+    const neutralCurrent = sumCurrentVectorsToNeutral(
+      { magnitude: iaMagnitude, angle: iaAngle },
+      { magnitude: ibMagnitude, angle: ibAngle },
+      { magnitude: icMagnitude, angle: icAngle },
+    );
+
     return [
       {
         key: "Va",
         phase: "A",
         family: "V",
         magnitude: toNumber(data?.Va),
-        angle: toNumber(data?.angVa),
+        angle: angVa,
         color: PHASE_COLORS.A,
       },
       {
@@ -125,7 +199,7 @@ export function FasoresView() {
         phase: "B",
         family: "V",
         magnitude: toNumber(data?.Vb),
-        angle: toNumber(data?.angVb),
+        angle: angVb,
         color: PHASE_COLORS.B,
       },
       {
@@ -133,15 +207,15 @@ export function FasoresView() {
         phase: "C",
         family: "V",
         magnitude: toNumber(data?.Vc),
-        angle: toNumber(data?.angVc),
+        angle: angVc,
         color: PHASE_COLORS.C,
       },
       {
         key: "Ia",
         phase: "A",
         family: "I",
-        magnitude: toNumber(data?.Ia),
-        angle: toNumber(data?.angIa),
+        magnitude: iaMagnitude,
+        angle: iaAngle,
         color: PHASE_COLORS.A,
         dashed: true,
       },
@@ -149,8 +223,8 @@ export function FasoresView() {
         key: "Ib",
         phase: "B",
         family: "I",
-        magnitude: toNumber(data?.Ib),
-        angle: toNumber(data?.angIb),
+        magnitude: ibMagnitude,
+        angle: ibAngle,
         color: PHASE_COLORS.B,
         dashed: true,
       },
@@ -158,9 +232,18 @@ export function FasoresView() {
         key: "Ic",
         phase: "C",
         family: "I",
-        magnitude: toNumber(data?.Ic),
-        angle: toNumber(data?.angIc),
+        magnitude: icMagnitude,
+        angle: icAngle,
         color: PHASE_COLORS.C,
+        dashed: true,
+      },
+      {
+        key: "In",
+        phase: "N",
+        family: "I",
+        magnitude: neutralCurrent.magnitude,
+        angle: neutralCurrent.angle,
+        color: PHASE_COLORS.N,
         dashed: true,
       },
     ];
@@ -183,7 +266,7 @@ export function FasoresView() {
   const updatedLabel = formatRelativeTime(toMillis(data?.createdAt), nowMs, isLoading);
 
   const familyGroups = useMemo(() => {
-    const order = ["A", "B", "C"] as const;
+    const order = ["A", "B", "C", "N"] as const;
     const groups: Array<{ family: FamilyKey; title: string; vectors: PhasorVector[] }> = [];
 
     if (viewMode !== "current") {
@@ -304,4 +387,3 @@ export function FasoresView() {
     </div>
   );
 }
-
