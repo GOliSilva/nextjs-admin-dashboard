@@ -23,16 +23,35 @@ export function PaymentsOverviewChart({ series, colors, yUnit }: PropsType) {
   const [isZoomEnabled, setIsZoomEnabled] = useState(false);
   const [enableSeriesTransitions, setEnableSeriesTransitions] = useState(false);
 
+  const normalizeTimestampNumber = (value: number) => {
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+
+    const absValue = Math.abs(value);
+
+    if (absValue > 1e14) {
+      return Math.floor(value / 1000);
+    }
+
+    if (absValue >= 1e12) {
+      return value;
+    }
+
+    if (absValue >= 1e9) {
+      return value * 1000;
+    }
+
+    return null;
+  };
+
   const normalizeX = (value: unknown) => {
     if (value == null) {
       return null;
     }
 
     if (typeof value === "number") {
-      if (!Number.isFinite(value)) {
-        return null;
-      }
-      return value > 1e14 ? Math.floor(value / 1000) : value;
+      return normalizeTimestampNumber(value) ?? String(value);
     }
 
     if (value instanceof Date) {
@@ -48,17 +67,18 @@ export function PaymentsOverviewChart({ series, colors, yUnit }: PropsType) {
 
       const numeric = Number.parseFloat(trimmed);
       if (Number.isFinite(numeric) && /^[+-]?\d+(\.\d+)?$/.test(trimmed)) {
-        let normalized = numeric;
-        if (normalized > 1e14) {
-          normalized = Math.floor(normalized / 1000);
-        } else if (normalized < 1e12) {
-          normalized = normalized * 1000;
-        }
-        return normalized;
+        return normalizeTimestampNumber(numeric) ?? trimmed;
       }
 
-      const parsed = new Date(trimmed).getTime();
-      return Number.isFinite(parsed) ? parsed : null;
+      const looksLikeIsoDate =
+        /^\d{4}-\d{2}-\d{2}/.test(trimmed) ||
+        /^\d{4}\/\d{2}\/\d{2}/.test(trimmed);
+      if (looksLikeIsoDate) {
+        const parsed = new Date(trimmed).getTime();
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+
+      return trimmed;
     }
 
     if (typeof value === "object") {
@@ -99,14 +119,17 @@ export function PaymentsOverviewChart({ series, colors, yUnit }: PropsType) {
     data: (item.data ?? [])
       .map((point) => {
         const xValue = normalizeX(point.x);
-        if (!Number.isFinite(xValue)) {
+        if (
+          xValue == null ||
+          (typeof xValue !== "number" && typeof xValue !== "string")
+        ) {
           return null;
         }
 
         const yValue = Number.isFinite(point.y) ? point.y : 0;
         return { x: xValue, y: yValue };
       })
-      .filter((point): point is { x: number; y: number } => point !== null),
+      .filter((point): point is { x: number | string; y: number } => point !== null),
   }));
 
   const hasData = normalizedSeries.some(
@@ -137,8 +160,9 @@ export function PaymentsOverviewChart({ series, colors, yUnit }: PropsType) {
   const hasDatetimeX = timestamps.length > 0;
   const rangeMs =
     hasDatetimeX ? Math.max(...timestamps) - Math.min(...timestamps) : 0;
+  const isIntradayRange = hasDatetimeX && rangeMs < 24 * 60 * 60 * 1000;
   const labelOptions: Intl.DateTimeFormatOptions =
-    rangeMs >= 24 * 60 * 60 * 1000
+    !isIntradayRange
       ? { day: "2-digit", month: "2-digit" }
       : { hour: "2-digit", minute: "2-digit" };
   const formatDateTime = (value: string | number) => {
@@ -146,13 +170,39 @@ export function PaymentsOverviewChart({ series, colors, yUnit }: PropsType) {
     if (!Number.isFinite(numeric)) {
       return String(value);
     }
-    return new Date(numeric).toLocaleString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
+    return new Date(numeric).toLocaleTimeString("pt-BR", {
       hour: "2-digit",
       minute: "2-digit",
     });
   };
+  const categoryLabels = hasDatetimeX
+    ? []
+    : normalizedSeries[0]?.data.map((point) => String(point.x)) ?? [];
+  const resolveCategoryLabel = (value: string | number) => {
+    const raw = String(value);
+    if (categoryLabels.includes(raw)) {
+      return raw;
+    }
+
+    const numeric = typeof value === "number" ? value : Number.parseFloat(value);
+    if (Number.isFinite(numeric)) {
+      const index = Math.round(numeric);
+      if (categoryLabels[index - 1] != null) {
+        return categoryLabels[index - 1];
+      }
+      if (categoryLabels[index] != null) {
+        return categoryLabels[index];
+      }
+    }
+
+    return raw;
+  };
+  const chartSeries = hasDatetimeX
+    ? normalizedSeries
+    : normalizedSeries.map((item) => ({
+        ...item,
+        data: item.data.map((point) => point.y),
+      }));
   const formatAxisLabel = (value: string | number) => {
     const numeric = typeof value === "number" ? value : Number.parseFloat(value);
     if (!Number.isFinite(numeric)) {
@@ -161,7 +211,11 @@ export function PaymentsOverviewChart({ series, colors, yUnit }: PropsType) {
     return new Date(numeric).toLocaleString("pt-BR", labelOptions);
   };
   const formatTooltipX = (value: string | number) =>
-    hasDatetimeX ? formatDateTime(value) : String(value);
+    hasDatetimeX
+      ? isIntradayRange
+        ? formatDateTime(value)
+        : formatAxisLabel(value)
+      : resolveCategoryLabel(value);
   const maxXTicks = 12;
   const dataPoints = normalizedSeries.reduce(
     (max, item) => Math.max(max, item.data.length),
@@ -248,8 +302,9 @@ export function PaymentsOverviewChart({ series, colors, yUnit }: PropsType) {
       },
     },
     xaxis: {
-      tickAmount: xTickAmount,
+      ...(hasDatetimeX ? { tickAmount: xTickAmount } : {}),
       type: hasDatetimeX ? "datetime" : "category",
+      ...(hasDatetimeX ? {} : { categories: categoryLabels }),
       axisBorder: {
         show: false,
       },
@@ -259,7 +314,7 @@ export function PaymentsOverviewChart({ series, colors, yUnit }: PropsType) {
       labels: {
         rotate: -45,
         rotateAlways: true,
-        formatter: formatAxisLabel,
+        formatter: hasDatetimeX ? formatAxisLabel : resolveCategoryLabel,
       },
     },
     yaxis: {
@@ -290,7 +345,7 @@ export function PaymentsOverviewChart({ series, colors, yUnit }: PropsType) {
           )}
           <Chart
             options={options}
-            series={normalizedSeries}
+            series={chartSeries}
             type="area"
             height={310}
           />

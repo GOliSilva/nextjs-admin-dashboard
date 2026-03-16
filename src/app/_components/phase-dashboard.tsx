@@ -40,7 +40,7 @@ export async function PhaseDashboard({ searchParams, phaseKey }: PropsType) {
           sectionKey={withPhaseKey(phaseKey, "overview_period")}
           mode={overviewMode}
           modeSectionKey={withPhaseKey(phaseKey, "overview_mode")}
-          modeItems={["consumo", "geracao"]}
+          modeItems={["consumo", "ponta", "fora ponta"]}
           timeFrameItems={["semanal", "diario"]}
         />
 

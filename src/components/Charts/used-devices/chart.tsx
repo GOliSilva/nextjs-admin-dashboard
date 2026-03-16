@@ -45,9 +45,17 @@ export function DonutChart({ data }: PropsType) {
             total: {
               show: true,
               showAlways: true,
-              label: "Total (kWh)",
+              label: "Total",
               fontSize: "16px",
               fontWeight: "400",
+              formatter: ({ globals }) =>
+                formatMeasurementValue(
+                  globals.seriesTotals.reduce(
+                    (total: number, value: number) => total + Number(value || 0),
+                    0,
+                  ),
+                  "kWh",
+                ),
             },
             value: {
               show: true,

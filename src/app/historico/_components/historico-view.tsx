@@ -16,6 +16,8 @@ import { useFirebaseData } from "@/contexts/firebase-data-context";
 import { getDataForGraph, getLatestStateData, resetLatestStateGlobalStats } from "@/lib/firebase";
 import { formatMeasurementValue } from "@/lib/format-measurement";
 import { cn } from "@/lib/utils";
+import { faGlobe } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { HistoricoContainer } from "./historico-container";
@@ -131,6 +133,11 @@ const VARIABLE_UNITS: Record<string, string> = {
 };
 
 const ERROR_TOAST_DURATION_MS = 1500;
+const byPrefixAndName = {
+  far: {
+    globe: faGlobe,
+  },
+} as const;
 
 const getVariableLabel = (key: string) => VARIABLE_LABELS[key] ?? key;
 const getVariableUnit = (key: string) => VARIABLE_UNITS[key] ?? "";
@@ -333,6 +340,35 @@ export function HistoricoView() {
 
     closeErrorModal();
     applyFilters(resolvedOption.value, resolvedOption.label);
+  };
+
+  const handleGlobalSearchButtonClick = () => {
+    setIsSuggestionsOpen(false);
+
+    const variableValidationError = validateVariable();
+    if (variableValidationError) {
+      setIsErrorModalOpen(true);
+      setErrorModalMessage(variableValidationError);
+      return;
+    }
+
+    const resolvedOption = resolveOption(searchTerm.trim());
+    if (!resolvedOption) {
+      setIsErrorModalOpen(true);
+      setErrorModalMessage("Selecione uma variÃ¡vel vÃ¡lida antes de pesquisar.");
+      return;
+    }
+
+    setStartDateInput("");
+    setEndDateInput("");
+    closeErrorModal();
+    setSearchTerm(resolvedOption.label);
+    setFilters({
+      query: resolvedOption.value,
+      startDate: "",
+      endDate: "",
+    });
+    setResultsKey((prev) => prev + 1);
   };
 
   const handleResetGlobalStatsClick = () => {
@@ -620,6 +656,16 @@ export function HistoricoView() {
               className="h-[46px] flex-1 rounded-lg bg-primary px-6 font-medium text-white hover:bg-opacity-90"
             >
               Pesquisar
+            </button>
+
+            <button
+              type="button"
+              onClick={handleGlobalSearchButtonClick}
+              className="inline-flex size-[46px] shrink-0 items-center justify-center rounded-lg bg-primary text-lg text-white transition hover:bg-opacity-90"
+              aria-label="Pesquisa global"
+              title="Pesquisa global"
+            >
+              <FontAwesomeIcon icon={byPrefixAndName.far.globe} />
             </button>
 
             <button

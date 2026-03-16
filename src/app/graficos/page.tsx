@@ -92,9 +92,8 @@ export default async function GraficosPage({ searchParams }: Props) {
             sectionKey="overview_period"
             mode={overviewMode}
             modeSectionKey="overview_mode"
-            modeItems={["consumo", "geracao"]}
+            modeItems={["consumo", "ponta", "fora ponta"]}
             timeFrameItems={["semanal", "diario"]}
-            title={"Consumo e gera\u00e7\u00e3o"}
           />
 
           <WeeksProfit

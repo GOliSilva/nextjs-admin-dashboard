@@ -25,7 +25,7 @@ export default async function ConsumoPage({ searchParams }: PropsType) {
         sectionKey="overview_period"
         mode={overviewMode}
         modeSectionKey="overview_mode"
-        modeItems={["consumo", "geracao"]}
+        modeItems={["consumo", "ponta", "fora ponta"]}
         timeFrameItems={["semanal", "diario"]}
         compact
       />

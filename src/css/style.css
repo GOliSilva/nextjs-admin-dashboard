@@ -113,7 +113,11 @@
 }
 
 .apexcharts-tooltip-series-group {
-  @apply !flex !items-center !gap-2 !pb-px !pl-2.5 !pr-3.5;
+  @apply !items-center !gap-2 !pb-px !pl-2.5 !pr-3.5;
+}
+
+.apexcharts-tooltip-series-group.apexcharts-active {
+  @apply !flex;
 }
 
 .apexcharts-tooltip-series-group .apexcharts-tooltip-text {

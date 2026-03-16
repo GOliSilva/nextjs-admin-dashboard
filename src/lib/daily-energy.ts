@@ -11,9 +11,7 @@ export type DailyEnergyDoc = {
   deltaEntries?: DailyEnergyEntry[];
 };
 
-const HOUR_LABELS = Array.from({ length: 24 }, (_, index) =>
-  String(index).padStart(2, "0"),
-);
+export type ConsumoOverviewMode = "consumo" | "ponta" | "fora ponta";
 
 const PHASES = [
   { name: "Fase A", field: "Ea" },
@@ -141,36 +139,92 @@ function formatDayLabel(dayKey: string) {
   return `${parts[2]}/${parts[1]}`;
 }
 
+function getSortedEntriesWithTimestamp(entries: DailyEnergyEntry[]) {
+  return entries
+    .map((entry) => {
+      const eventMs = toMillis(entry.eventAt);
+      if (eventMs == null) {
+        return null;
+      }
+
+      return { entry, eventMs };
+    })
+    .filter(
+      (
+        item,
+      ): item is {
+        entry: DailyEnergyEntry;
+        eventMs: number;
+      } => item !== null,
+    )
+    .sort((left, right) => left.eventMs - right.eventMs);
+}
+
+function normalizePeriodType(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "ponta") {
+    return "ponta";
+  }
+
+  if (normalized === "foraponta" || normalized === "fora ponta") {
+    return "fora ponta";
+  }
+
+  return null;
+}
+
+function matchesOverviewMode(entry: DailyEnergyEntry, mode: ConsumoOverviewMode) {
+  if (mode === "consumo") {
+    return true;
+  }
+
+  return normalizePeriodType(entry.periodType) === mode;
+}
+
 export function buildConsumoOverviewSeries(
   docs: DailyEnergyDoc[],
   period: "diario" | "semanal",
+  mode: ConsumoOverviewMode = "consumo",
 ) {
   const docMap = getDocMap(docs);
 
   if (period === "diario") {
     const entries = getEntries(docMap.get(buildDayKey(new Date())));
-    const buckets = new Map(HOUR_LABELS.map((label) => [label, 0]));
-
-    entries.forEach((entry) => {
-      const eventMs = toMillis(entry.eventAt);
-      if (eventMs == null) {
-        return;
-      }
-
-      const hour = String(new Date(eventMs).getHours()).padStart(2, "0");
-      buckets.set(hour, (buckets.get(hour) ?? 0) + toNumber(entry.deltaTotalEvento));
-    });
-
-    return HOUR_LABELS.map((label) => ({
-      x: label,
-      y: buckets.get(label) ?? 0,
-    }));
+    return getSortedEntriesWithTimestamp(entries)
+      .filter(({ entry }) => matchesOverviewMode(entry, mode))
+      .map(({ entry, eventMs }) => ({
+        x: eventMs,
+        y: toNumber(entry.deltaTotalEvento),
+      }));
   }
 
-  return getRecentDayKeys(7).map((dayKey) => ({
-    x: formatDayLabel(dayKey),
-    y: sumEntries(getEntries(docMap.get(dayKey))),
-  }));
+  return getRecentDayKeys(7)
+    .map((dayKey) => {
+      const entries = getEntries(docMap.get(dayKey)).filter((entry) =>
+        matchesOverviewMode(entry, mode),
+      );
+
+      if (entries.length === 0) {
+        return null;
+      }
+
+      return {
+        x: formatDayLabel(dayKey),
+        y: sumEntries(entries),
+      };
+    })
+    .filter(
+      (
+        point,
+      ): point is {
+        x: string;
+        y: number;
+      } => point !== null,
+    );
 }
 
 export function buildConsumoPorFaseSeries(
@@ -181,36 +235,29 @@ export function buildConsumoPorFaseSeries(
 
   if (period === "diario") {
     const entries = getEntries(docMap.get(buildDayKey(new Date())));
+    const sortedEntries = getSortedEntriesWithTimestamp(entries);
 
     return PHASES.map(({ name, field }) => {
-      const buckets = new Map(HOUR_LABELS.map((label) => [label, 0]));
-
-      entries.forEach((entry) => {
-        const eventMs = toMillis(entry.eventAt);
-        if (eventMs == null) {
-          return;
-        }
-
-        const deltas = entry.deltas;
-        if (!deltas || typeof deltas !== "object") {
-          return;
-        }
-
-        const hour = String(new Date(eventMs).getHours()).padStart(2, "0");
-        buckets.set(hour, (buckets.get(hour) ?? 0) + toNumber(deltas[field]));
-      });
-
       return {
         name,
-        data: HOUR_LABELS.map((label) => ({
-          x: label,
-          y: buckets.get(label) ?? 0,
-        })),
+        data: sortedEntries.map(({ entry, eventMs }) => {
+          const deltas = entry.deltas;
+          const value =
+            deltas && typeof deltas === "object" ? toNumber(deltas[field]) : 0;
+
+          return {
+            x: eventMs,
+            y: value,
+          };
+        }),
       };
     });
   }
 
-  const dayKeys = getRecentDayKeys(7);
+  const dayKeys = getRecentDayKeys(7).filter((dayKey) => {
+    return getEntries(docMap.get(dayKey)).length > 0;
+  });
+
   return PHASES.map(({ name, field }) => ({
     name,
     data: dayKeys.map((dayKey) => ({

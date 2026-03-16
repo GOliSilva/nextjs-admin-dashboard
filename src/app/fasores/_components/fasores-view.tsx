@@ -160,7 +160,7 @@ function formatMagnitude(
 
 export function FasoresView() {
   const { data, isLoading } = useFirebaseData();
-  const [viewMode, setViewMode] = useState<DiagramViewMode>("voltage");
+  const [viewMode, setViewMode] = useState<DiagramViewMode>("overlay");
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {

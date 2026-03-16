@@ -5,13 +5,13 @@ import { PeriodPicker } from "@/components/period-picker";
 import { useDeviceSelection } from "@/contexts/device-selection-context";
 import {
   buildConsumoOverviewSeries,
+  type ConsumoOverviewMode,
   type DailyEnergyDoc,
 } from "@/lib/daily-energy";
 import { formatMeasurementValue } from "@/lib/format-measurement";
 import { getDailyEnergyData } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import { getPaymentsOverviewData } from "@/services/charts.services";
-import { getGeracaoSeries, type GeracaoPeriod } from "@/services/geracao.services";
 import { PaymentsOverviewChart } from "./chart";
 
 type PropsType = {
@@ -49,24 +49,48 @@ const sumSeries = (series: SeriesItem) => {
   return series.data.reduce((acc, point) => acc + point.y, 0);
 };
 
-const normalizePeriod = (value?: string): ConsumoPeriod & GeracaoPeriod => {
+const normalizePeriod = (value?: string): ConsumoPeriod => {
   return value === "diario" ? "diario" : "semanal";
 };
 
-const normalizeMode = (value?: string) => {
-  return value === "geracao" ? "geracao" : "consumo";
+const normalizeMode = (value?: string): ConsumoOverviewMode => {
+  if (value === "ponta") {
+    return "ponta";
+  }
+
+  if (value === "fora ponta" || value === "foraPonta") {
+    return "fora ponta";
+  }
+
+  return "consumo";
 };
 
 const getModeLabel = (value: string) => {
-  if (value === "geracao") {
-    return "Potencia";
-  }
-
   if (value === "consumo") {
     return "Consumo";
   }
 
+  if (value === "ponta") {
+    return "Consumo Ponta";
+  }
+
+  if (value === "fora ponta") {
+    return "Consumo Fora Ponta";
+  }
+
   return value;
+};
+
+const getModeColor = (value: ConsumoOverviewMode) => {
+  if (value === "ponta") {
+    return "#FB923C";
+  }
+
+  if (value === "fora ponta") {
+    return "#34D399";
+  }
+
+  return "#0ABEF9";
 };
 
 export function PaymentsOverview({
@@ -87,21 +111,28 @@ export function PaymentsOverview({
     showModePicker && title === "Payments Overview"
       ? getModeLabel(normalizedMode)
       : title;
-  const resolvedModeItems = (modeItems ?? ["consumo", "geracao"]).map((item) => ({
+  const resolvedModeItems = (modeItems ?? ["consumo", "ponta", "fora ponta"]).map((item) => ({
     value: item,
     label: getModeLabel(item),
   }));
   const resolvedPeriod = normalizePeriod(timeFrame);
   const resolvedTimeFrame = showModePicker ? resolvedPeriod : timeFrame ?? "monthly";
-  const showTimeFramePicker =
-    !showModePicker || normalizedMode === "consumo" || normalizedMode === "geracao";
+  const showTimeFramePicker = true;
   const [viewState, setViewState] = useState<ViewState>(EMPTY_STATE);
 
   useEffect(() => {
-    if (showModePicker && normalizedMode === "consumo") {
+    if (showModePicker) {
+      const seriesName = getModeLabel(normalizedMode);
+      const seriesColor = getModeColor(normalizedMode);
+
       setViewState({
-        series: [{ name: "Consumo", data: buildConsumoOverviewSeries([], resolvedPeriod) }],
-        chartColors: ["#0ABEF9"],
+        series: [
+          {
+            name: seriesName,
+            data: buildConsumoOverviewSeries([], resolvedPeriod, normalizedMode),
+          },
+        ],
+        chartColors: [seriesColor],
         yUnit: "kWh",
       });
 
@@ -109,11 +140,11 @@ export function PaymentsOverview({
         setViewState({
           series: [
             {
-              name: "Consumo",
-              data: buildConsumoOverviewSeries(docs, resolvedPeriod),
+              name: seriesName,
+              data: buildConsumoOverviewSeries(docs, resolvedPeriod, normalizedMode),
             },
           ],
-          chartColors: ["#0ABEF9"],
+          chartColors: [seriesColor],
           yUnit: "kWh",
         });
       }, selectedDeviceId);
@@ -122,23 +153,6 @@ export function PaymentsOverview({
     let isMounted = true;
 
     const loadData = async () => {
-      if (showModePicker && normalizedMode === "geracao") {
-        const { direta, reversa } = await getGeracaoSeries(resolvedPeriod);
-        if (!isMounted) {
-          return;
-        }
-
-        setViewState({
-          series: [
-            { name: "Consumo", data: direta },
-            { name: "Geracao", data: reversa },
-          ],
-          chartColors: undefined,
-          yUnit: "kWh",
-        });
-        return;
-      }
-
       const data = await getPaymentsOverviewData(resolvedTimeFrame);
       if (!isMounted) {
         return;
