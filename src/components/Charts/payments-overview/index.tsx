@@ -1,8 +1,16 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { PeriodPicker } from "@/components/period-picker";
+import { useDeviceSelection } from "@/contexts/device-selection-context";
+import {
+  buildConsumoOverviewSeries,
+  type DailyEnergyDoc,
+} from "@/lib/daily-energy";
 import { formatMeasurementValue } from "@/lib/format-measurement";
+import { getDailyEnergyData } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import { getPaymentsOverviewData } from "@/services/charts.services";
-import { getConsumoSeries, type ConsumoPeriod } from "@/services/consumo.services";
 import { getGeracaoSeries, type GeracaoPeriod } from "@/services/geracao.services";
 import { PaymentsOverviewChart } from "./chart";
 
@@ -23,6 +31,20 @@ type SeriesItem = {
   data: { x: unknown; y: number }[];
 };
 
+type ConsumoPeriod = "semanal" | "diario";
+
+type ViewState = {
+  series: SeriesItem[];
+  chartColors?: string[];
+  yUnit?: string;
+};
+
+const EMPTY_STATE: ViewState = {
+  series: [],
+  chartColors: undefined,
+  yUnit: undefined,
+};
+
 const sumSeries = (series: SeriesItem) => {
   return series.data.reduce((acc, point) => acc + point.y, 0);
 };
@@ -37,7 +59,7 @@ const normalizeMode = (value?: string) => {
 
 const getModeLabel = (value: string) => {
   if (value === "geracao") {
-    return "Pot\u00EAncia";
+    return "Potencia";
   }
 
   if (value === "consumo") {
@@ -47,7 +69,7 @@ const getModeLabel = (value: string) => {
   return value;
 };
 
-export async function PaymentsOverview({
+export function PaymentsOverview({
   timeFrame,
   className,
   title = "Payments Overview",
@@ -58,24 +80,109 @@ export async function PaymentsOverview({
   modeItems,
   compact,
 }: PropsType) {
+  const { selectedDeviceId } = useDeviceSelection();
   const showModePicker = Boolean(modeSectionKey);
   const normalizedMode = normalizeMode(mode);
   const resolvedTitle =
     showModePicker && title === "Payments Overview"
       ? getModeLabel(normalizedMode)
       : title;
-  const resolvedModeItems = (modeItems ?? ["consumo", "geracao"]).map(
-    (item) => ({
-      value: item,
-      label: getModeLabel(item),
-    }),
-  );
+  const resolvedModeItems = (modeItems ?? ["consumo", "geracao"]).map((item) => ({
+    value: item,
+    label: getModeLabel(item),
+  }));
   const resolvedPeriod = normalizePeriod(timeFrame);
-  const resolvedTimeFrame = showModePicker
-    ? resolvedPeriod
-    : timeFrame ?? "monthly";
+  const resolvedTimeFrame = showModePicker ? resolvedPeriod : timeFrame ?? "monthly";
   const showTimeFramePicker =
     !showModePicker || normalizedMode === "consumo" || normalizedMode === "geracao";
+  const [viewState, setViewState] = useState<ViewState>(EMPTY_STATE);
+
+  useEffect(() => {
+    if (showModePicker && normalizedMode === "consumo") {
+      setViewState({
+        series: [{ name: "Consumo", data: buildConsumoOverviewSeries([], resolvedPeriod) }],
+        chartColors: ["#0ABEF9"],
+        yUnit: "kWh",
+      });
+
+      return getDailyEnergyData((docs: DailyEnergyDoc[]) => {
+        setViewState({
+          series: [
+            {
+              name: "Consumo",
+              data: buildConsumoOverviewSeries(docs, resolvedPeriod),
+            },
+          ],
+          chartColors: ["#0ABEF9"],
+          yUnit: "kWh",
+        });
+      }, selectedDeviceId);
+    }
+
+    let isMounted = true;
+
+    const loadData = async () => {
+      if (showModePicker && normalizedMode === "geracao") {
+        const { direta, reversa } = await getGeracaoSeries(resolvedPeriod);
+        if (!isMounted) {
+          return;
+        }
+
+        setViewState({
+          series: [
+            { name: "Consumo", data: direta },
+            { name: "Geracao", data: reversa },
+          ],
+          chartColors: undefined,
+          yUnit: "kWh",
+        });
+        return;
+      }
+
+      const data = await getPaymentsOverviewData(resolvedTimeFrame);
+      if (!isMounted) {
+        return;
+      }
+
+      setViewState({
+        series: [
+          { name: "Received", data: data.received },
+          { name: "Due", data: data.due },
+        ],
+        chartColors: undefined,
+        yUnit: undefined,
+      });
+    };
+
+    void loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    normalizedMode,
+    resolvedPeriod,
+    resolvedTimeFrame,
+    selectedDeviceId,
+    showModePicker,
+  ]);
+
+  const summaryItems = showModePicker
+    ? viewState.series.map((item) => ({
+        label: item.name,
+        value: formatMeasurementValue(sumSeries(item), viewState.yUnit, { withSpace: true }),
+      }))
+    : [
+        {
+          label: "Received Amount",
+          value: formatMeasurementValue(sumSeries(viewState.series[0] ?? { name: "", data: [] })),
+        },
+        {
+          label: "Due Amount",
+          value: formatMeasurementValue(sumSeries(viewState.series[1] ?? { name: "", data: [] })),
+        },
+      ];
+
   const containerClassName = cn(
     "grid gap-2 rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card",
     compact ? "p-4 sm:px-7.5 sm:pb-6 sm:pt-7.5" : "px-7.5 pb-6 pt-7.5",
@@ -99,68 +206,6 @@ export async function PaymentsOverview({
     "font-medium dark:text-dark-6",
     compact ? "text-xs sm:text-sm" : undefined,
   );
-
-  let series: SeriesItem[] = [];
-  let summaryItems: { label: string; value: string }[] = [];
-  let chartColors: string[] | undefined;
-  let yUnit: string | undefined;
-
-  if (showModePicker) {
-    yUnit = "kWh";
-    if (normalizedMode === "consumo") {
-      const consumoSeries = await getConsumoSeries(resolvedPeriod);
-
-      series = [
-        {
-          name: "Consumo",
-          data: consumoSeries,
-        },
-      ];
-      chartColors = ["#0ABEF9"];
-    } else {
-      const { direta, reversa } = await getGeracaoSeries(resolvedPeriod);
-
-      series = [
-        {
-          name: "Consumo",
-          data: direta,
-        },
-        {
-          name: "Gera\u00E7\u00E3o",
-          data: reversa,
-        },
-      ];
-    }
-
-    summaryItems = series.map((item) => ({
-      label: item.name,
-      value: formatMeasurementValue(sumSeries(item), yUnit, { withSpace: true }),
-    }));
-  } else {
-    const data = await getPaymentsOverviewData(resolvedTimeFrame);
-
-    series = [
-      {
-        name: "Received",
-        data: data.received,
-      },
-      {
-        name: "Due",
-        data: data.due,
-      },
-    ];
-
-    summaryItems = [
-      {
-        label: "Received Amount",
-        value: formatMeasurementValue(sumSeries(series[0])),
-      },
-      {
-        label: "Due Amount",
-        value: formatMeasurementValue(sumSeries(series[1])),
-      },
-    ];
-  }
 
   return (
     <div className={containerClassName}>
@@ -190,7 +235,11 @@ export async function PaymentsOverview({
         </div>
       </div>
 
-      <PaymentsOverviewChart series={series} colors={chartColors} yUnit={yUnit} />
+      <PaymentsOverviewChart
+        series={viewState.series}
+        colors={viewState.chartColors}
+        yUnit={viewState.yUnit}
+      />
 
       <dl
         className={cn(

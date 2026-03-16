@@ -2,8 +2,9 @@ import ast
 import json
 import math
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from firebase_functions import pubsub_fn
 from firebase_functions.options import set_global_options
@@ -18,12 +19,16 @@ _db = None
 DEFAULT_DEVICE_ID = "device-unknown"
 DEVICES_COLLECTION = "devices"
 DAILY_COLLECTION = "daily"
+DAILY_ENERGY_COLLECTION = "daily_energy"
 DAILY_AGG_COLLECTION = "daily_agg"
 WEEKLY_COLLECTION = "weekly"
+MONTHLY_COLLECTION = "monthly"
 STATE_COLLECTION = "state"
 DAILY_AGG_ERROR_FIELD = "dailyAggError"
 GLOBAL_MIN_FIELD = "globalMin"
 GLOBAL_MAX_FIELD = "globalMax"
+GLOBAL_MIN_TIME_FIELD = "globalMinTime"
+GLOBAL_MAX_TIME_FIELD = "globalMaxTime"
 GLOBAL_AVG_FIELD = "globalAvg"
 GLOBAL_SUM_FIELD = "globalSum"
 GLOBAL_COUNT_FIELD = "globalCount"
@@ -106,6 +111,21 @@ RTP_SCALED_FIELDS = {
     "Vc",
 }
 
+MONTHLY_ENERGY_FIELDS = {
+    "Ea",
+    "Eb",
+    "Ec",
+    "Ear",
+    "Ebr",
+    "Ecr",
+    "Era",
+    "Erb",
+    "Erc",
+    "Erar",
+    "Erbr",
+    "Ercr",
+}
+
 ANGLE_FIELDS = {
     "angVa",
     "angVb",
@@ -114,6 +134,12 @@ ANGLE_FIELDS = {
     "angIb",
     "angIc",
 }
+
+try:
+    BRAZIL_TZ = ZoneInfo("America/Sao_Paulo")
+except ZoneInfoNotFoundError:
+    # Firebase local analysis on Windows may not have IANA tzdata installed.
+    BRAZIL_TZ = timezone(timedelta(hours=-3), name="America/Sao_Paulo")
 
 
 def _get_db():
@@ -190,6 +216,8 @@ def _empty_state_stats() -> dict[str, Any]:
     return {
         GLOBAL_MIN_FIELD: {},
         GLOBAL_MAX_FIELD: {},
+        GLOBAL_MIN_TIME_FIELD: {},
+        GLOBAL_MAX_TIME_FIELD: {},
         GLOBAL_AVG_FIELD: {},
         GLOBAL_SUM_FIELD: {},
         GLOBAL_COUNT_FIELD: {},
@@ -202,6 +230,8 @@ def _clone_state_stats(stats: dict[str, Any]) -> dict[str, Any]:
     return {
         GLOBAL_MIN_FIELD: _copy_number_map(stats.get(GLOBAL_MIN_FIELD, {}) or {}),
         GLOBAL_MAX_FIELD: _copy_number_map(stats.get(GLOBAL_MAX_FIELD, {}) or {}),
+        GLOBAL_MIN_TIME_FIELD: _copy_number_map(stats.get(GLOBAL_MIN_TIME_FIELD, {}) or {}),
+        GLOBAL_MAX_TIME_FIELD: _copy_number_map(stats.get(GLOBAL_MAX_TIME_FIELD, {}) or {}),
         GLOBAL_AVG_FIELD: _copy_number_map(stats.get(GLOBAL_AVG_FIELD, {}) or {}),
         GLOBAL_SUM_FIELD: _copy_number_map(stats.get(GLOBAL_SUM_FIELD, {}) or {}),
         GLOBAL_COUNT_FIELD: _copy_number_map(stats.get(GLOBAL_COUNT_FIELD, {}) or {}),
@@ -224,6 +254,8 @@ def _extract_state_stats_from_doc(snapshot: firestore.DocumentSnapshot) -> dict[
     data = snapshot.to_dict() or {}
     global_min = _sanitize_number_map(data.get(GLOBAL_MIN_FIELD))
     global_max = _sanitize_number_map(data.get(GLOBAL_MAX_FIELD))
+    global_min_time = _sanitize_number_map(data.get(GLOBAL_MIN_TIME_FIELD))
+    global_max_time = _sanitize_number_map(data.get(GLOBAL_MAX_TIME_FIELD))
     global_avg = _sanitize_number_map(data.get(GLOBAL_AVG_FIELD))
     global_sum = _sanitize_number_map(data.get(GLOBAL_SUM_FIELD))
     global_count = _sanitize_number_map(data.get(GLOBAL_COUNT_FIELD))
@@ -238,6 +270,8 @@ def _extract_state_stats_from_doc(snapshot: firestore.DocumentSnapshot) -> dict[
     return {
         GLOBAL_MIN_FIELD: global_min,
         GLOBAL_MAX_FIELD: global_max,
+        GLOBAL_MIN_TIME_FIELD: global_min_time,
+        GLOBAL_MAX_TIME_FIELD: global_max_time,
         GLOBAL_AVG_FIELD: global_avg,
         GLOBAL_SUM_FIELD: global_sum,
         GLOBAL_COUNT_FIELD: global_count,
@@ -257,12 +291,16 @@ def _load_state_stats(
 def _compute_next_state_stats(
     state_stats: dict[str, Any],
     payload_numeric: dict[str, float],
+    event_time: datetime,
 ) -> dict[str, Any]:
     global_min = _copy_number_map(state_stats.get(GLOBAL_MIN_FIELD, {}) or {})
     global_max = _copy_number_map(state_stats.get(GLOBAL_MAX_FIELD, {}) or {})
+    global_min_time = _copy_number_map(state_stats.get(GLOBAL_MIN_TIME_FIELD, {}) or {})
+    global_max_time = _copy_number_map(state_stats.get(GLOBAL_MAX_TIME_FIELD, {}) or {})
     global_avg = _copy_number_map(state_stats.get(GLOBAL_AVG_FIELD, {}) or {})
     global_sum = _copy_number_map(state_stats.get(GLOBAL_SUM_FIELD, {}) or {})
     global_count = _copy_number_map(state_stats.get(GLOBAL_COUNT_FIELD, {}) or {})
+    event_time_ms = event_time.timestamp() * 1000.0
 
     incoming_values: dict[str, float] = {}
     for key, raw_value in payload_numeric.items():
@@ -314,16 +352,17 @@ def _compute_next_state_stats(
             global_sum[key] = previous_sum + incoming_value
             current_min = _safe_float(global_min.get(key))
             current_max = _safe_float(global_max.get(key))
-            global_min[key] = (
-                incoming_value
-                if current_min is None
-                else min(current_min, incoming_value)
-            )
-            global_max[key] = (
-                incoming_value
-                if current_max is None
-                else max(current_max, incoming_value)
-            )
+            if current_min is None or incoming_value < current_min:
+                global_min[key] = incoming_value
+                global_min_time[key] = event_time_ms
+            elif current_min is not None:
+                global_min[key] = current_min
+
+            if current_max is None or incoming_value > current_max:
+                global_max[key] = incoming_value
+                global_max_time[key] = event_time_ms
+            elif current_max is not None:
+                global_max[key] = current_max
         else:
             global_sum[key] = previous_sum
 
@@ -335,6 +374,8 @@ def _compute_next_state_stats(
     return {
         GLOBAL_MIN_FIELD: global_min,
         GLOBAL_MAX_FIELD: global_max,
+        GLOBAL_MIN_TIME_FIELD: global_min_time,
+        GLOBAL_MAX_TIME_FIELD: global_max_time,
         GLOBAL_AVG_FIELD: global_avg,
         GLOBAL_SUM_FIELD: global_sum,
         GLOBAL_COUNT_FIELD: global_count,
@@ -359,6 +400,8 @@ def _build_latest_state_payload(
         "createdAt": firestore.SERVER_TIMESTAMP,
         GLOBAL_MIN_FIELD: _copy_number_map(state_stats.get(GLOBAL_MIN_FIELD, {}) or {}),
         GLOBAL_MAX_FIELD: _copy_number_map(state_stats.get(GLOBAL_MAX_FIELD, {}) or {}),
+        GLOBAL_MIN_TIME_FIELD: _copy_number_map(state_stats.get(GLOBAL_MIN_TIME_FIELD, {}) or {}),
+        GLOBAL_MAX_TIME_FIELD: _copy_number_map(state_stats.get(GLOBAL_MAX_TIME_FIELD, {}) or {}),
         GLOBAL_AVG_FIELD: _copy_number_map(state_stats.get(GLOBAL_AVG_FIELD, {}) or {}),
         GLOBAL_SUM_FIELD: _copy_number_map(state_stats.get(GLOBAL_SUM_FIELD, {}) or {}),
         GLOBAL_COUNT_FIELD: _copy_number_map(state_stats.get(GLOBAL_COUNT_FIELD, {}) or {}),
@@ -401,7 +444,11 @@ def _save_latest_state_with_global_stats(
     event_time: datetime,
 ):
     baseline_state_stats = _load_state_stats(latest_ref)
-    next_state_stats = _compute_next_state_stats(baseline_state_stats, payload_numeric)
+    next_state_stats = _compute_next_state_stats(
+        baseline_state_stats,
+        payload_numeric,
+        event_time,
+    )
     payload = _build_latest_state_payload(
         device_id=device_id,
         device_name=device_name,
@@ -424,6 +471,7 @@ def _save_latest_state_with_global_stats(
         next_state_stats = _compute_next_state_stats(
             refreshed_state_stats,
             payload_numeric,
+            event_time,
         )
         payload = _build_latest_state_payload(
             device_id=device_id,
@@ -596,6 +644,14 @@ def _normalize_angles(payload_numeric: dict) -> dict:
     return normalized_payload
 
 
+def _only_monthly_energy_fields(data: dict) -> dict[str, float]:
+    return {
+        key: float(value)
+        for key, value in data.items()
+        if key in MONTHLY_ENERGY_FIELDS and isinstance(value, (int, float))
+    }
+
+
 def _only_weekly_summable_fields(data: dict) -> dict:
     return {
         key: value
@@ -690,9 +746,17 @@ def _day_key(reference_time: datetime) -> str:
     return reference_time.strftime("%Y-%m-%d")
 
 
+def _local_day_key(reference_time: datetime) -> str:
+    return reference_time.astimezone(BRAZIL_TZ).strftime("%Y-%m-%d")
+
+
 def _week_key(reference_time: datetime) -> str:
     iso_year, iso_week, _ = reference_time.isocalendar()
     return f"{iso_year}-W{iso_week:02d}"
+
+
+def _month_key(reference_time: datetime) -> str:
+    return reference_time.astimezone(BRAZIL_TZ).strftime("%Y-%m")
 
 
 def _start_of_hour(reference_time: datetime) -> datetime:
@@ -703,10 +767,20 @@ def _start_of_day(reference_time: datetime) -> datetime:
     return reference_time.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
+def _start_of_local_day(reference_time: datetime) -> datetime:
+    local_time = reference_time.astimezone(BRAZIL_TZ)
+    return local_time.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
 def _start_of_week(reference_time: datetime) -> datetime:
     iso_year, iso_week, _ = reference_time.isocalendar()
     start = datetime.fromisocalendar(iso_year, iso_week, 1)
     return start.replace(tzinfo=timezone.utc)
+
+
+def _start_of_month(reference_time: datetime) -> datetime:
+    local_time = reference_time.astimezone(BRAZIL_TZ)
+    return local_time.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
 
 def _build_weekly_updates(payload: dict) -> dict:
@@ -714,6 +788,286 @@ def _build_weekly_updates(payload: dict) -> dict:
     for key, value in payload.items():
         updates[f"sums.{key}"] = firestore.Increment(float(value))
     return updates
+
+
+def _is_valid_peak_time(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    text = value.strip()
+    if len(text) != 5 or text[2] != ":":
+        return False
+    hour_text, minute_text = text.split(":")
+    if not (hour_text.isdigit() and minute_text.isdigit()):
+        return False
+    hour = int(hour_text)
+    minute = int(minute_text)
+    return 0 <= hour <= 23 and 0 <= minute <= 59
+
+
+def _parse_peak_time_minutes(value: str) -> int | None:
+    if not _is_valid_peak_time(value):
+        return None
+    hour_text, minute_text = value.split(":")
+    return int(hour_text) * 60 + int(minute_text)
+
+
+def _classify_period_type(
+    *,
+    event_time: datetime,
+    inicio_ponta: Any,
+    fim_ponta: Any,
+) -> str:
+    local_time = event_time.astimezone(BRAZIL_TZ)
+    if local_time.weekday() >= 5:
+        return "foraPonta"
+
+    start_minutes = _parse_peak_time_minutes(inicio_ponta) if isinstance(inicio_ponta, str) else None
+    end_minutes = _parse_peak_time_minutes(fim_ponta) if isinstance(fim_ponta, str) else None
+    if start_minutes is None or end_minutes is None:
+        return "foraPonta"
+
+    current_minutes = local_time.hour * 60 + local_time.minute
+    if start_minutes <= end_minutes:
+        return "ponta" if start_minutes <= current_minutes < end_minutes else "foraPonta"
+
+    # Overnight windows are out of scope; keep them as foraPonta.
+    return "foraPonta"
+
+
+def _extract_latest_baseline_data(snapshot: firestore.DocumentSnapshot) -> dict[str, Any]:
+    if not snapshot.exists:
+        return {}
+    data = snapshot.to_dict() or {}
+    return data if isinstance(data, dict) else {}
+
+
+def _compute_monthly_deltas(
+    *,
+    previous_raw_energy: dict[str, float],
+    current_raw_energy: dict[str, float],
+) -> tuple[dict[str, float], float]:
+    deltas: dict[str, float] = {}
+    total_delta = 0.0
+
+    for key, current_value in current_raw_energy.items():
+        previous_value = _safe_float(previous_raw_energy.get(key))
+        if previous_value is None:
+            continue
+
+        delta = float(current_value) - previous_value
+        deltas[key] = delta
+        total_delta += delta
+
+    return deltas, total_delta
+
+
+def _load_monthly_doc_data(
+    monthly_ref: firestore.DocumentReference,
+) -> tuple[firestore.DocumentSnapshot, dict[str, Any]]:
+    snapshot = monthly_ref.get()
+    if not snapshot.exists:
+        return snapshot, {}
+
+    data = snapshot.to_dict() or {}
+    return snapshot, data if isinstance(data, dict) else {}
+
+
+def _compute_next_monthly_doc(
+    *,
+    current_doc: dict[str, Any],
+    device_id: str,
+    device_name: str | None,
+    month_key: str,
+    month_start: datetime,
+    event_time: datetime,
+    inicio_ponta: str | None,
+    fim_ponta: str | None,
+    period_type: str,
+    current_raw_energy: dict[str, float],
+    deltas: dict[str, float],
+    delta_total_evento: float,
+) -> dict[str, Any]:
+    monthly_total = _copy_number_map(_sanitize_number_map(current_doc.get("monthlyTotal")))
+    monthly_ponta = _copy_number_map(_sanitize_number_map(current_doc.get("monthlyPonta")))
+    monthly_fora_ponta = _copy_number_map(_sanitize_number_map(current_doc.get("monthlyForaPonta")))
+    last_raw_energy = _copy_number_map(_sanitize_number_map(current_doc.get("lastRawEnergy")))
+    last_delta = _copy_number_map(_sanitize_number_map(current_doc.get("lastDelta")))
+
+    consumo_total = _safe_float(current_doc.get("consumoTotal")) or 0.0
+    consumo_total_ponta = _safe_float(current_doc.get("consumoTotalPonta")) or 0.0
+    consumo_total_fora_ponta = _safe_float(current_doc.get("consumoTotalForaPonta")) or 0.0
+
+    for key, value in current_raw_energy.items():
+        last_raw_energy[key] = float(value)
+
+    if deltas:
+        last_delta = {key: float(value) for key, value in deltas.items()}
+        for key, delta in deltas.items():
+            monthly_total[key] = monthly_total.get(key, 0.0) + float(delta)
+            if period_type == "ponta":
+                monthly_ponta[key] = monthly_ponta.get(key, 0.0) + float(delta)
+            else:
+                monthly_fora_ponta[key] = monthly_fora_ponta.get(key, 0.0) + float(delta)
+
+        consumo_total += delta_total_evento
+        if period_type == "ponta":
+            consumo_total_ponta += delta_total_evento
+        else:
+            consumo_total_fora_ponta += delta_total_evento
+
+    return {
+        "deviceId": device_id,
+        "deviceName": device_name,
+        "monthKey": month_key,
+        "monthStart": month_start,
+        "timezone": "America/Sao_Paulo",
+        "inicioPonta": inicio_ponta,
+        "fimPonta": fim_ponta,
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+        "lastSampleAt": event_time,
+        "lastRawEnergy": last_raw_energy,
+        "lastDelta": last_delta,
+        "lastPeriodType": period_type,
+        "monthlyTotal": monthly_total,
+        "monthlyPonta": monthly_ponta,
+        "monthlyForaPonta": monthly_fora_ponta,
+        "consumoTotal": float(consumo_total),
+        "consumoTotalPonta": float(consumo_total_ponta),
+        "consumoTotalForaPonta": float(consumo_total_fora_ponta),
+    }
+
+
+def _load_daily_energy_doc_data(
+    daily_energy_ref: firestore.DocumentReference,
+) -> tuple[firestore.DocumentSnapshot, dict[str, Any]]:
+    snapshot = daily_energy_ref.get()
+    if not snapshot.exists:
+        return snapshot, {}
+
+    data = snapshot.to_dict() or {}
+    return snapshot, data if isinstance(data, dict) else {}
+
+
+def _copy_delta_entries(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+
+    entries: list[dict[str, Any]] = []
+    for item in value:
+        if isinstance(item, dict):
+            entries.append(dict(item))
+    return entries
+
+
+def _compute_next_daily_energy_doc(
+    *,
+    current_doc: dict[str, Any],
+    device_id: str,
+    device_name: str | None,
+    day_key: str,
+    day_start: datetime,
+    event_time: datetime,
+    period_type: str,
+    deltas: dict[str, float],
+    delta_total_evento: float,
+) -> dict[str, Any]:
+    delta_entries = _copy_delta_entries(current_doc.get("deltaEntries"))
+
+    if deltas:
+        delta_entries.append(
+            {
+                "eventAt": event_time,
+                "periodType": period_type,
+                "deltas": {key: float(value) for key, value in deltas.items()},
+                "deltaTotalEvento": float(delta_total_evento),
+            }
+        )
+
+    return {
+        "deviceId": device_id,
+        "deviceName": device_name,
+        "dayKey": day_key,
+        "dayStart": day_start,
+        "timezone": "America/Sao_Paulo",
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+        "lastSampleAt": event_time,
+        "deltaEntries": delta_entries,
+    }
+
+
+def _save_daily_energy_aggregation(
+    *,
+    daily_energy_ref: firestore.DocumentReference,
+    device_id: str,
+    device_name: str | None,
+    event_time: datetime,
+    period_type: str,
+    deltas: dict[str, float],
+    delta_total_evento: float,
+):
+    daily_snapshot, current_doc = _load_daily_energy_doc_data(daily_energy_ref)
+    del daily_snapshot
+    next_doc = _compute_next_daily_energy_doc(
+        current_doc=current_doc,
+        device_id=device_id,
+        device_name=device_name,
+        day_key=_local_day_key(event_time),
+        day_start=_start_of_local_day(event_time),
+        event_time=event_time,
+        period_type=period_type,
+        deltas=deltas,
+        delta_total_evento=delta_total_evento,
+    )
+    daily_energy_ref.set(next_doc, merge=True)
+
+
+def _save_monthly_energy_aggregation(
+    *,
+    monthly_ref: firestore.DocumentReference,
+    device_id: str,
+    device_name: str | None,
+    event_time: datetime,
+    latest_state_data: dict[str, Any],
+    current_raw_energy: dict[str, float],
+) -> tuple[dict[str, float], float, str]:
+    month_key = _month_key(event_time)
+    month_start = _start_of_month(event_time)
+    inicio_ponta = latest_state_data.get("inicioPonta")
+    fim_ponta = latest_state_data.get("fimPonta")
+    inicio_ponta_value = inicio_ponta if _is_valid_peak_time(inicio_ponta) else None
+    fim_ponta_value = fim_ponta if _is_valid_peak_time(fim_ponta) else None
+    period_type = _classify_period_type(
+        event_time=event_time,
+        inicio_ponta=inicio_ponta_value,
+        fim_ponta=fim_ponta_value,
+    )
+
+    previous_raw_energy = _sanitize_number_map(
+        {key: latest_state_data.get(key) for key in MONTHLY_ENERGY_FIELDS}
+    )
+    deltas, delta_total_evento = _compute_monthly_deltas(
+        previous_raw_energy=previous_raw_energy,
+        current_raw_energy=current_raw_energy,
+    )
+
+    monthly_snapshot, current_doc = _load_monthly_doc_data(monthly_ref)
+    del monthly_snapshot
+    next_doc = _compute_next_monthly_doc(
+        current_doc=current_doc,
+        device_id=device_id,
+        device_name=device_name,
+        month_key=month_key,
+        month_start=month_start,
+        event_time=event_time,
+        inicio_ponta=inicio_ponta_value,
+        fim_ponta=fim_ponta_value,
+        period_type=period_type,
+        current_raw_energy=current_raw_energy,
+        deltas=deltas,
+        delta_total_evento=delta_total_evento,
+    )
+    monthly_ref.set(next_doc, merge=True)
+    return deltas, delta_total_evento, period_type
 
 
 def _log_daily_agg_error(
@@ -761,9 +1115,7 @@ def _log_daily_agg_error(
         print(traceback.format_exc())
 
 
-@firestore.transactional
 def _save_daily_agg_reading(
-    transaction: firestore.Transaction,
     doc_ref: firestore.DocumentReference,
     *,
     device_id: str,
@@ -786,7 +1138,7 @@ def _save_daily_agg_reading(
         "readings": firestore.ArrayUnion([reading]),
     }
 
-    transaction.set(doc_ref, payload, merge=True)
+    doc_ref.set(payload, merge=True)
 
 
 @pubsub_fn.on_message_published(topic="rawData")
@@ -824,6 +1176,10 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
     db = _get_db()
     device_ref = db.collection(DEVICES_COLLECTION).document(device_id)
     day_key = _day_key(event_time)
+    latest_ref = device_ref.collection(STATE_COLLECTION).document("latest")
+    latest_snapshot = latest_ref.get()
+    latest_state_data = _extract_latest_baseline_data(latest_snapshot)
+    current_raw_energy = _only_monthly_energy_fields(payload_numeric)
 
     daily_doc_ref = device_ref.collection(DAILY_COLLECTION).document(_hour_bucket_id(event_time))
     daily_doc_ref.set(
@@ -840,7 +1196,30 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
         merge=True,
     )
 
-    latest_ref = device_ref.collection(STATE_COLLECTION).document("latest")
+    if current_raw_energy:
+        monthly_ref = device_ref.collection(MONTHLY_COLLECTION).document(_month_key(event_time))
+        deltas, delta_total_evento, period_type = _save_monthly_energy_aggregation(
+            monthly_ref=monthly_ref,
+            device_id=device_id,
+            device_name=device_name,
+            event_time=event_time,
+            latest_state_data=latest_state_data,
+            current_raw_energy=current_raw_energy,
+        )
+        if deltas:
+            daily_energy_ref = device_ref.collection(DAILY_ENERGY_COLLECTION).document(
+                _local_day_key(event_time)
+            )
+            _save_daily_energy_aggregation(
+                daily_energy_ref=daily_energy_ref,
+                device_id=device_id,
+                device_name=device_name,
+                event_time=event_time,
+                period_type=period_type,
+                deltas=deltas,
+                delta_total_evento=delta_total_evento,
+            )
+
     _save_latest_state_with_global_stats(
         latest_ref=latest_ref,
         device_id=device_id,
@@ -873,7 +1252,6 @@ def on_raw_data(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]):
     try:
         daily_agg_ref = device_ref.collection(DAILY_AGG_COLLECTION).document(day_key)
         _save_daily_agg_reading(
-            db.transaction(),
             daily_agg_ref,
             device_id=device_id,
             device_name=device_name,

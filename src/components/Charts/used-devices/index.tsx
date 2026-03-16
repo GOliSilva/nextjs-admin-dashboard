@@ -1,6 +1,14 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { PeriodPicker } from "@/components/period-picker";
+import { useDeviceSelection } from "@/contexts/device-selection-context";
+import {
+  buildConsumoPorFaseBreakdown,
+  type DailyEnergyDoc,
+} from "@/lib/daily-energy";
+import { getDailyEnergyData } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
-import { getConsumoPorFase } from "@/services/consumo-por-fase.services";
 import { DonutChart } from "./chart";
 
 type PropsType = {
@@ -9,13 +17,34 @@ type PropsType = {
   compact?: boolean;
 };
 
-export async function UsedDevices({
+type PhaseBreakdownItem = {
+  name: string;
+  amount: number;
+};
+
+const EMPTY_BREAKDOWN: PhaseBreakdownItem[] = [
+  { name: "Fase A", amount: 0 },
+  { name: "Fase B", amount: 0 },
+  { name: "Fase C", amount: 0 },
+];
+
+export function UsedDevices({
   timeFrame = "semanal",
   className,
   compact,
 }: PropsType) {
+  const { selectedDeviceId } = useDeviceSelection();
   const period = timeFrame === "mensal" ? "mensal" : "semanal";
-  const data = await getConsumoPorFase(period);
+  const [data, setData] = useState<PhaseBreakdownItem[]>(EMPTY_BREAKDOWN);
+
+  useEffect(() => {
+    setData(EMPTY_BREAKDOWN);
+
+    return getDailyEnergyData((docs: DailyEnergyDoc[]) => {
+      setData(buildConsumoPorFaseBreakdown(docs, period));
+    }, selectedDeviceId);
+  }, [period, selectedDeviceId]);
+
   const containerClassName = cn(
     "grid grid-cols-1 grid-rows-[auto_1fr] rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card",
     compact ? "gap-4 p-4 sm:gap-9 sm:p-7.5" : "gap-9 p-7.5",

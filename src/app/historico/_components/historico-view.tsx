@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { useDeviceSelection } from "@/contexts/device-selection-context";
 import { useFirebaseData } from "@/contexts/firebase-data-context";
-import { getDataForGraph } from "@/lib/firebase";
+import { getDataForGraph, getLatestStateData, resetLatestStateGlobalStats } from "@/lib/firebase";
 import { formatMeasurementValue } from "@/lib/format-measurement";
 import { cn } from "@/lib/utils";
 import dayjs from "dayjs";
@@ -146,6 +146,20 @@ const toFiniteNumber = (value: unknown) => {
   }
   return null;
 };
+
+const formatMaybeTimestamp = (value: unknown) => {
+  const timestamp = toFiniteNumber(value);
+  if (timestamp == null) return "--";
+
+  const formatted = dayjs(timestamp).format("YYYY-MM-DD HH:mm");
+  return formatted === "Invalid Date" ? "--" : formatted;
+};
+
+const toRecord = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+};
+
 const parseDateInput = (value: string) => {
   if (!value) return undefined;
 
@@ -166,6 +180,9 @@ const parseDateInput = (value: string) => {
 export function HistoricoView() {
   const { selectedDeviceId } = useDeviceSelection();
   const { data } = useFirebaseData();
+  const [latestState, setLatestState] = useState<Record<string, unknown> | null>(
+    null,
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [startDateInput, setStartDateInput] = useState("");
   const [endDateInput, setEndDateInput] = useState("");
@@ -177,7 +194,11 @@ export function HistoricoView() {
   const [resultsKey, setResultsKey] = useState(0);
   const [historyItems, setHistoryItems] = useState<HistoricoItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResettingGlobals, setIsResettingGlobals] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const hasVariableFilter = filters.query.trim().length > 0;
+  const hasDateRangeFilter =
+    filters.startDate.trim().length > 0 && filters.endDate.trim().length > 0;
 
   const variableOptions = useMemo<VariableOption[]>(() => {
     if (!data) return [];
@@ -239,8 +260,12 @@ export function HistoricoView() {
   };
 
   const validateDateRange = () => {
+    if (!startDateInput && !endDateInput) {
+      return null;
+    }
+
     if (!startDateInput || !endDateInput) {
-      return "Preencha data inicial e data final antes de pesquisar.";
+      return "Preencha data inicial e data final, ou deixe ambas vazias para ver estatísticas globais.";
     }
 
     const startBoundary = parseDateInput(startDateInput);
@@ -310,8 +335,45 @@ export function HistoricoView() {
     applyFilters(resolvedOption.value, resolvedOption.label);
   };
 
+  const handleResetGlobalStatsClick = () => {
+    setIsResetConfirmOpen(true);
+  };
+
+  const handleResetGlobalStatsConfirm = async () => {
+    setIsResettingGlobals(true);
+    try {
+      await resetLatestStateGlobalStats(selectedDeviceId);
+      setIsResetConfirmOpen(false);
+    } catch (error) {
+      console.error(error);
+      setErrorModalMessage("Nao foi possivel apagar os valores globais.");
+      setIsErrorModalOpen(true);
+    } finally {
+      setIsResettingGlobals(false);
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribe = getLatestStateData(
+      (state: Record<string, unknown> | null) => {
+        setLatestState(state);
+      },
+      selectedDeviceId,
+    );
+
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [selectedDeviceId]);
+
   useEffect(() => {
     if (!filters.query) {
+      setHistoryItems([]);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!hasDateRangeFilter) {
       setHistoryItems([]);
       setIsLoading(false);
       return;
@@ -355,7 +417,13 @@ export function HistoricoView() {
     return () => {
       if (typeof unsubscribe === "function") unsubscribe();
     };
-  }, [filters.query, filters.startDate, filters.endDate, selectedDeviceId]);
+  }, [
+    filters.query,
+    filters.startDate,
+    filters.endDate,
+    hasDateRangeFilter,
+    selectedDeviceId,
+  ]);
 
   useEffect(() => {
     if (!isErrorModalOpen) return;
@@ -398,7 +466,7 @@ export function HistoricoView() {
     ];
   }, [filters.query, hasVariableFilter, historyItems]);
 
-  const stats = useMemo(() => {
+  const periodStats = useMemo(() => {
     if (!hasVariableFilter || filteredHistory.length === 0) return null;
 
     const [first] = filteredHistory;
@@ -421,8 +489,46 @@ export function HistoricoView() {
     };
   }, [filteredHistory, hasVariableFilter]);
 
+  const globalStats = useMemo(() => {
+    if (!hasVariableFilter || hasDateRangeFilter) return null;
+
+    const globalMin = toRecord(latestState?.globalMin);
+    const globalMax = toRecord(latestState?.globalMax);
+    const globalMinTime = toRecord(latestState?.globalMinTime);
+    const globalMaxTime = toRecord(latestState?.globalMaxTime);
+    const globalSum = toRecord(latestState?.globalSum);
+    const globalAvg = toRecord(latestState?.globalAvg);
+    const key = filters.query;
+
+    const minValue = toFiniteNumber(globalMin[key]);
+    const maxValue = toFiniteNumber(globalMax[key]);
+    const minTimestamp = toFiniteNumber(globalMinTime[key]);
+    const maxTimestamp = toFiniteNumber(globalMaxTime[key]);
+    const sumValue = toFiniteNumber(globalSum[key]);
+    const avgValue = toFiniteNumber(globalAvg[key]);
+
+    if (minValue == null && maxValue == null && sumValue == null && avgValue == null) {
+      return null;
+    }
+
+    return {
+      minValue,
+      maxValue,
+      minTimestamp,
+      maxTimestamp,
+      sumValue,
+      avgValue,
+      unit: getVariableUnit(key),
+    };
+  }, [filters.query, hasDateRangeFilter, hasVariableFilter, latestState]);
+
   const formatValue = (value: number, unit: string) => {
     return formatMeasurementValue(value, unit, { withSpace: true });
+  };
+
+  const formatMaybeValue = (value: number | null | undefined, unit: string) => {
+    if (value == null) return "--";
+    return formatValue(value, unit);
   };
 
   return (
@@ -430,10 +536,10 @@ export function HistoricoView() {
       <div className="border-b border-stroke pb-6 dark:border-dark-3">
         <div
           data-historico-filters
-          className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5"
+          className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12"
         >
           <div
-            className="relative xl:col-span-2"
+            className="relative xl:col-span-4"
             onFocus={() => setIsSuggestionsOpen(true)}
             onBlur={() => setIsSuggestionsOpen(false)}
             onKeyDown={handleSearchKeyDown}
@@ -479,37 +585,57 @@ export function HistoricoView() {
             )}
           </div>
 
-          <InputGroup
-            label="Data inicial"
-            type="date"
-            placeholder="AAAA-MM-DD"
-            required
-            value={startDateInput}
-            handleChange={(event) => {
-              setStartDateInput(event.target.value);
-              if (isErrorModalOpen) closeErrorModal();
-            }}
-          />
+          <div className="xl:col-span-2">
+            <InputGroup
+              label="Data inicial"
+              type="date"
+              placeholder="AAAA-MM-DD"
+              required
+              value={startDateInput}
+              handleChange={(event) => {
+                setStartDateInput(event.target.value);
+                if (isErrorModalOpen) closeErrorModal();
+              }}
+            />
+          </div>
 
-          <InputGroup
-            label="Data final"
-            type="date"
-            placeholder="AAAA-MM-DD"
-            required
-            value={endDateInput}
-            handleChange={(event) => {
-              setEndDateInput(event.target.value);
-              if (isErrorModalOpen) closeErrorModal();
-            }}
-          />
+          <div className="xl:col-span-2">
+            <InputGroup
+              label="Data final"
+              type="date"
+              placeholder="AAAA-MM-DD"
+              required
+              value={endDateInput}
+              handleChange={(event) => {
+                setEndDateInput(event.target.value);
+                if (isErrorModalOpen) closeErrorModal();
+              }}
+            />
+          </div>
 
-          <div className="flex items-end">
+          <div className="flex items-end gap-4 xl:col-span-4">
             <button
               type="button"
               onClick={handleSearchButtonClick}
-              className="h-[46px] w-full rounded-lg bg-primary px-6 font-medium text-white hover:bg-opacity-90"
+              className="h-[46px] flex-1 rounded-lg bg-primary px-6 font-medium text-white hover:bg-opacity-90"
             >
               Pesquisar
+            </button>
+
+            <button
+              type="button"
+              onClick={handleResetGlobalStatsClick}
+              disabled={isResettingGlobals || !latestState}
+              className={cn(
+                "inline-flex size-[46px] shrink-0 items-center justify-center rounded-lg text-lg font-bold text-white transition",
+                isResettingGlobals || !latestState
+                  ? "cursor-not-allowed bg-[#D9A5A5]"
+                  : "bg-[#C24141] hover:bg-[#A83434]",
+              )}
+              aria-label="Apagar valores globais"
+              title="Apagar valores globais"
+            >
+              X
             </button>
           </div>
         </div>
@@ -534,6 +660,10 @@ export function HistoricoView() {
             ) : isLoading ? (
               <div className="flex h-[310px] items-center justify-center text-sm text-dark-5 dark:text-dark-6">
                 Carregando dados...
+              </div>
+            ) : !hasDateRangeFilter ? (
+              <div className="flex h-[310px] items-center justify-center text-sm text-dark-5 dark:text-dark-6">
+                Preencha as datas para visualizar o grafico do periodo.
               </div>
             ) : chartSeries.length === 0 ? (
               <div className="flex h-[310px] items-center justify-center text-sm text-dark-5 dark:text-dark-6">
@@ -581,6 +711,12 @@ export function HistoricoView() {
                       Carregando dados...
                     </TableCell>
                   </TableRow>
+                ) : !hasDateRangeFilter ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="py-6 text-center text-dark-5 dark:text-dark-6">
+                      Preencha as datas para listar os dados do periodo.
+                    </TableCell>
+                  </TableRow>
                 ) : filteredHistory.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} className="py-6 text-center text-dark-5 dark:text-dark-6">
@@ -589,8 +725,8 @@ export function HistoricoView() {
                   </TableRow>
                 ) : (
                   filteredHistory.map((item) => {
-                    const isMax = stats?.maxItem.id === item.id;
-                    const isMin = stats?.minItem.id === item.id;
+                    const isMax = periodStats?.maxItem.id === item.id;
+                    const isMin = periodStats?.minItem.id === item.id;
                     const highlightClass =
                       isMax && isMin
                         ? "bg-[#EAF6FF] dark:bg-[#1D2B3A]/70"
@@ -633,37 +769,61 @@ export function HistoricoView() {
           <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
             <p className="text-sm font-medium text-dark-5 dark:text-dark-6">Maior valor</p>
             <p className="mt-2 text-xl font-bold text-dark dark:text-white">
-              {stats ? formatValue(stats.maxItem.value, stats.unit) : "--"}
+              {hasDateRangeFilter
+                ? periodStats
+                  ? formatValue(periodStats.maxItem.value, periodStats.unit)
+                  : "--"
+                : formatMaybeValue(globalStats?.maxValue, globalStats?.unit ?? getVariableUnit(filters.query))}
             </p>
             <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
-              Data: {stats ? dayjs(stats.maxItem.time).format("YYYY-MM-DD HH:mm") : "--"}
+              {hasDateRangeFilter
+                ? `Data: ${periodStats ? dayjs(periodStats.maxItem.time).format("YYYY-MM-DD HH:mm") : "--"}`
+                : `Data: ${formatMaybeTimestamp(globalStats?.maxTimestamp)}`}
             </p>
           </div>
 
           <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
             <p className="text-sm font-medium text-dark-5 dark:text-dark-6">Menor valor</p>
             <p className="mt-2 text-xl font-bold text-dark dark:text-white">
-              {stats ? formatValue(stats.minItem.value, stats.unit) : "--"}
+              {hasDateRangeFilter
+                ? periodStats
+                  ? formatValue(periodStats.minItem.value, periodStats.unit)
+                  : "--"
+                : formatMaybeValue(globalStats?.minValue, globalStats?.unit ?? getVariableUnit(filters.query))}
             </p>
             <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
-              Data: {stats ? dayjs(stats.minItem.time).format("YYYY-MM-DD HH:mm") : "--"}
+              {hasDateRangeFilter
+                ? `Data: ${periodStats ? dayjs(periodStats.minItem.time).format("YYYY-MM-DD HH:mm") : "--"}`
+                : `Data: ${formatMaybeTimestamp(globalStats?.minTimestamp)}`}
             </p>
           </div>
 
           <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
             <p className="text-sm font-medium text-dark-5 dark:text-dark-6">Total acumulado</p>
             <p className="mt-2 text-xl font-bold text-dark dark:text-white">
-              {stats ? formatValue(stats.sum, stats.unit) : "--"}
+              {hasDateRangeFilter
+                ? periodStats
+                  ? formatValue(periodStats.sum, periodStats.unit)
+                  : "--"
+                : formatMaybeValue(globalStats?.sumValue, globalStats?.unit ?? getVariableUnit(filters.query))}
             </p>
-            <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">Periodo selecionado</p>
+            <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
+              {hasDateRangeFilter ? "Periodo selecionado" : "Global (sem periodo)"}
+            </p>
           </div>
 
           <div className="rounded-[10px] border border-stroke bg-gray-2 p-4 dark:border-dark-3 dark:bg-dark-2/60">
             <p className="text-sm font-medium text-dark-5 dark:text-dark-6">Media</p>
             <p className="mt-2 text-xl font-bold text-dark dark:text-white">
-              {stats ? formatValue(stats.avg, stats.unit) : "--"}
+              {hasDateRangeFilter
+                ? periodStats
+                  ? formatValue(periodStats.avg, periodStats.unit)
+                  : "--"
+                : formatMaybeValue(globalStats?.avgValue, globalStats?.unit ?? getVariableUnit(filters.query))}
             </p>
-            <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">Periodo selecionado</p>
+            <p className="mt-2 text-xs text-dark-5 dark:text-dark-6">
+              {hasDateRangeFilter ? "Periodo selecionado" : "Global (sem periodo)"}
+            </p>
           </div>
         </div>
       </div>
@@ -708,8 +868,64 @@ export function HistoricoView() {
           </div>
         </div>
       ) : null}
+
+      {isResetConfirmOpen ? (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-dark/70 px-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="historico-reset-title"
+            className="w-full max-w-md rounded-xl border border-stroke bg-white p-6 shadow-1 dark:border-dark-3 dark:bg-gray-dark"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3
+                  id="historico-reset-title"
+                  className="text-lg font-semibold text-dark dark:text-white"
+                >
+                  Apagar valores globais?
+                </h3>
+                <p className="mt-2 text-sm text-dark-5 dark:text-dark-6">
+                  Esta acao limpa minimos, maximos, total acumulado e media globais do
+                  dispositivo selecionado.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsResetConfirmOpen(false)}
+                disabled={isResettingGlobals}
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-stroke text-sm font-bold text-dark transition hover:bg-gray-2 disabled:cursor-not-allowed dark:border-dark-3 dark:text-white dark:hover:bg-dark-2"
+                aria-label="Fechar confirmacao"
+              >
+                X
+              </button>
+            </div>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setIsResetConfirmOpen(false)}
+                disabled={isResettingGlobals}
+                className="inline-flex h-[44px] items-center justify-center rounded-lg border border-stroke px-4 text-sm font-medium text-dark transition hover:bg-gray-2 disabled:cursor-not-allowed dark:border-dark-3 dark:text-white dark:hover:bg-dark-2"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleResetGlobalStatsConfirm}
+                disabled={isResettingGlobals}
+                className={cn(
+                  "inline-flex h-[44px] items-center justify-center rounded-lg px-4 text-sm font-medium text-white transition",
+                  isResettingGlobals
+                    ? "cursor-not-allowed bg-[#D9A5A5]"
+                    : "bg-[#C24141] hover:bg-[#A83434]",
+                )}
+              >
+                {isResettingGlobals ? "Apagando..." : "Apagar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </HistoricoContainer>
   );
 }
-
-

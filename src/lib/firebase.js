@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps } from "firebase/app"
 import { getAuth } from "firebase/auth"
-import { getFirestore, onSnapshot, collection, query, where, orderBy, limit, getDocs, startAfter, doc } from "firebase/firestore"
+import { getFirestore, onSnapshot, collection, query, where, orderBy, limit, getDocs, startAfter, doc, setDoc } from "firebase/firestore"
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -22,7 +22,9 @@ const db = getFirestore(app)
 
 const DEVICES_COLLECTION = "devices"
 const DAILY_COLLECTION = "daily"
+const DAILY_ENERGY_COLLECTION = "daily_energy"
 const STATE_COLLECTION = "state"
+const MONTHLY_COLLECTION = "monthly"
 const DEFAULT_DEVICE_ID = process.env.NEXT_PUBLIC_DEVICE_ID ?? "device-unknown"
 const MAX_DOCS_PER_READ = 1000
 const GRAPH_POLLING_INTERVAL_MS = 60 * 60 * 1000 // 1 hora em milissegundos
@@ -211,6 +213,124 @@ function getLatestStateData(callback, deviceId = DEFAULT_DEVICE_ID) {
     callback(null)
     return () => {}
   }
+}
+
+function getMonthlyData(callback, deviceId = DEFAULT_DEVICE_ID) {
+  try {
+    const monthlyRef = collection(
+      db,
+      DEVICES_COLLECTION,
+      resolveDeviceId(deviceId),
+      MONTHLY_COLLECTION,
+    )
+    const q = query(monthlyRef, orderBy("monthKey", "asc"))
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        callback(
+          snap.docs.map((docSnap) => ({
+            id: docSnap.id,
+            ...docSnap.data(),
+          })),
+        )
+      },
+      (error) => {
+        console.error(error)
+        callback([])
+      },
+    )
+
+    return () => unsub()
+  } catch (error) {
+    console.error(error)
+    callback([])
+    return () => {}
+  }
+}
+
+function getDailyEnergyData(callback, deviceId = DEFAULT_DEVICE_ID) {
+  try {
+    const dailyEnergyRef = collection(
+      db,
+      DEVICES_COLLECTION,
+      resolveDeviceId(deviceId),
+      DAILY_ENERGY_COLLECTION,
+    )
+    const q = query(dailyEnergyRef, orderBy("dayKey", "desc"), limit(120))
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        callback(
+          snap.docs.map((docSnap) => ({
+            id: docSnap.id,
+            ...docSnap.data(),
+          })),
+        )
+      },
+      (error) => {
+        console.error(error)
+        callback([])
+      },
+    )
+
+    return () => unsub()
+  } catch (error) {
+    console.error(error)
+    callback([])
+    return () => {}
+  }
+}
+
+async function resetLatestStateGlobalStats(deviceId = DEFAULT_DEVICE_ID) {
+  const stateRef = doc(
+    db,
+    DEVICES_COLLECTION,
+    resolveDeviceId(deviceId),
+    STATE_COLLECTION,
+    "latest",
+  )
+
+  await setDoc(
+    stateRef,
+    {
+      globalMin: {},
+      globalMax: {},
+      globalMinTime: {},
+      globalMaxTime: {},
+      globalAvg: {},
+      globalSum: {},
+      globalCount: {},
+      readCount: 0,
+    },
+    { merge: true },
+  )
+}
+
+async function savePeakHoursSettings(
+  {
+    inicioPonta,
+    fimPonta,
+  },
+  deviceId = DEFAULT_DEVICE_ID,
+) {
+  const stateRef = doc(
+    db,
+    DEVICES_COLLECTION,
+    resolveDeviceId(deviceId),
+    STATE_COLLECTION,
+    "latest",
+  )
+
+  await setDoc(
+    stateRef,
+    {
+      inicioPonta,
+      fimPonta,
+    },
+    { merge: true },
+  )
 }
 
 function extractPointsFromBuckets(docs, variableName, startMs, endMs) {
@@ -599,4 +719,15 @@ function getDataForGraph(
   )
 }
 
-export { app, auth, db, getMostRecentData, getLatestStateData, getDataForGraph }
+export {
+  app,
+  auth,
+  db,
+  getMostRecentData,
+  getLatestStateData,
+  getDailyEnergyData,
+  getMonthlyData,
+  getDataForGraph,
+  resetLatestStateGlobalStats,
+  savePeakHoursSettings,
+}

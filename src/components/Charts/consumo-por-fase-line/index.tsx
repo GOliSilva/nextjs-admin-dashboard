@@ -1,8 +1,16 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { PeriodPicker } from "@/components/period-picker";
-import { formatMeasurementValue } from "@/lib/format-measurement";
-import { cn } from "@/lib/utils";
-import { getConsumoPorFaseLinha } from "@/services/consumo-por-fase-linha.services";
 import { PaymentsOverviewChart } from "@/components/Charts/payments-overview/chart";
+import { useDeviceSelection } from "@/contexts/device-selection-context";
+import {
+  buildConsumoPorFaseSeries,
+  type DailyEnergyDoc,
+} from "@/lib/daily-energy";
+import { formatMeasurementValue } from "@/lib/format-measurement";
+import { getDailyEnergyData } from "@/lib/firebase";
+import { cn } from "@/lib/utils";
 
 type PropsType = {
   timeFrame?: string;
@@ -12,15 +20,24 @@ type PropsType = {
   compact?: boolean;
 };
 
-export async function ConsumoPorFaseLine({
+export function ConsumoPorFaseLine({
   timeFrame = "semanal",
   className,
   title = "Consumos por fase",
   sectionKey = "consumos_por_fase",
   compact,
 }: PropsType) {
+  const { selectedDeviceId } = useDeviceSelection();
   const period = timeFrame === "diario" ? "diario" : "semanal";
-  const series = await getConsumoPorFaseLinha(period);
+  const [series, setSeries] = useState(() => buildConsumoPorFaseSeries([], period));
+
+  useEffect(() => {
+    setSeries(buildConsumoPorFaseSeries([], period));
+
+    return getDailyEnergyData((docs: DailyEnergyDoc[]) => {
+      setSeries(buildConsumoPorFaseSeries(docs, period));
+    }, selectedDeviceId);
+  }, [period, selectedDeviceId]);
 
   const summaryItems = series.map((item) => ({
     label: item.name,
